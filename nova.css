@@ -137,3 +137,8 @@ html[data-theme="radiant-crimson"] body{background:radial-gradient(circle at 82%
 html[data-theme="radiant-crimson-dark"] body{background:radial-gradient(circle at 82% 0,rgba(255,120,144,.2),transparent 29%),radial-gradient(circle at 12% 95%,rgba(168,95,152,.15),transparent 30%),var(--bg)}
 html[data-theme="ocean-peace"] body{background:radial-gradient(circle at 82% 0,rgba(47,174,184,.2),transparent 29%),radial-gradient(circle at 12% 95%,rgba(86,142,215,.14),transparent 30%),var(--bg)}
 html[data-theme="ocean-peace-dark"] body{background:radial-gradient(circle at 82% 0,rgba(99,214,217,.18),transparent 29%),radial-gradient(circle at 12% 95%,rgba(45,111,181,.16),transparent 30%),var(--bg)}
+
+/* Actions d’espace : éviter qu’Inviter s’étire sur toute la hauteur du titre. */
+.workspace-actions{align-items:flex-start}
+.mobile-space-add{display:none}
+@media(max-width:720px){.mobile-space-add{display:inline-grid}}
