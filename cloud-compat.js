@@ -33,6 +33,17 @@ const signOut = () => auth.signOut();
 const updateProfile = (user, value) => user.updateProfile(value);
 const root = document.getElementById("sharedSection");
 
+// Les contrôles sont recréés à chaque changement d’espace ou d’onglet. Un
+// écouteur global en capture évite qu’un rendu ou un parent ne fasse perdre
+// le clic aux actions de partage.
+document.addEventListener("click", event => {
+  const button = event.target.closest?.("[data-cloud-action]");
+  if (!button || !root?.contains(button)) return;
+  if (button.classList.contains("nova-modal-backdrop") && event.target.closest(".nova-modal")) return;
+  event.preventDefault();
+  action(button.dataset.cloudAction);
+}, true);
+
 const cloud = {
   user: null, workspaces: [], active: null, tasks: [], notes: [], activity: [],
   tab: "tasks", panel: null, busy: false, notice: "", pendingInvite: new URLSearchParams(location.search).get("invite")?.toUpperCase() || "",
@@ -266,13 +277,6 @@ function render() {
 function bind() {
   root.querySelectorAll("[data-space-id]").forEach(button => button.onclick = () => selectWorkspace(button.dataset.spaceId));
   root.querySelectorAll("[data-cloud-tab]").forEach(button => button.onclick = () => { cloud.tab = button.dataset.cloudTab; render(); });
-  root.onclick = event => {
-    const button = event.target.closest?.("[data-cloud-action]");
-    if (!button || !root.contains(button)) return;
-    if (button.classList.contains("nova-modal-backdrop") && event.target.closest(".nova-modal")) return;
-    event.preventDefault();
-    action(button.dataset.cloudAction);
-  };
   root.querySelectorAll("[data-task-toggle]").forEach(button => button.onclick = () => toggleTask(button.dataset.taskToggle));
   root.querySelectorAll("[data-task-edit]").forEach(button => button.onclick = () => { cloud.editingTask = cloud.tasks.find(task => task.id === button.dataset.taskEdit); cloud.panel = "task"; render(); });
   root.querySelectorAll("[data-task-delete]").forEach(button => button.onclick = () => deleteTask(button.dataset.taskDelete));
