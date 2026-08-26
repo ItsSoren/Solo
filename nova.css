@@ -142,3 +142,8 @@ html[data-theme="ocean-peace-dark"] body{background:radial-gradient(circle at 82
 .workspace-actions{align-items:flex-start}
 .mobile-space-add{display:none}
 @media(max-width:720px){.mobile-space-add{display:inline-grid}}
+
+/* Le symbole opale reste seul, sans pastille colorée autour. */
+.brand-mark{background:transparent;box-shadow:none;border-radius:0}
+.brand-mark img{width:38px;height:38px;object-fit:contain;filter:drop-shadow(0 8px 14px rgba(88,196,220,.2))}
+.nova-mini img{width:32px;height:32px;object-fit:contain}
