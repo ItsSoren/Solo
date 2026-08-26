@@ -133,3 +133,7 @@ dialog{color:var(--text)}.modal-sheet,.command-sheet,.confirm-sheet{width:min(72
 .protocol-online-link{display:inline-flex;align-items:center;gap:9px;margin-top:26px;text-decoration:none}.protocol-local-note{margin-top:13px;color:var(--muted)}
 .spaces-panel>.nova-primary+.nova-secondary{margin-top:8px}
 @media(max-width:720px){.settings-page{overflow:auto}.setting-card{overflow:visible}}
+html[data-theme="radiant-crimson"] body{background:radial-gradient(circle at 82% 0,rgba(225,91,115,.2),transparent 29%),radial-gradient(circle at 12% 95%,rgba(244,188,158,.16),transparent 30%),var(--bg)}
+html[data-theme="radiant-crimson-dark"] body{background:radial-gradient(circle at 82% 0,rgba(255,120,144,.2),transparent 29%),radial-gradient(circle at 12% 95%,rgba(168,95,152,.15),transparent 30%),var(--bg)}
+html[data-theme="ocean-peace"] body{background:radial-gradient(circle at 82% 0,rgba(47,174,184,.2),transparent 29%),radial-gradient(circle at 12% 95%,rgba(86,142,215,.14),transparent 30%),var(--bg)}
+html[data-theme="ocean-peace-dark"] body{background:radial-gradient(circle at 82% 0,rgba(99,214,217,.18),transparent 29%),radial-gradient(circle at 12% 95%,rgba(45,111,181,.16),transparent 30%),var(--bg)}
