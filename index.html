@@ -1,103 +1,75 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="google-site-verification" content="h56hWxMgQnXtoLFwUNuTEcxKIOuFWVBrxlmdLWLaZz4" />
-  <title>Nova Tasks — Liste de tâches</title>
-  <meta name="description" content="Nova Tasks, l'application simple pour gérer vos tâches, objectifs, skins, gemmes et profil directement dans votre navigateur.">
-  <meta name="keywords" content="Nova Tasks, tâches, gestion, objectifs, NovaTasks, Nova, Tasks manager, nova task, novatask">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="google-site-verification" content="h56hWxMgQnXtoLFuFWVBrxlmdLWLaZz4">
+  <title>Nova Tasks — Organise l’essentiel</title>
+  <meta name="description" content="Objectifs, notes et espaces partagés dans une interface simple et opale.">
+  <meta name="keywords" content="Nova Tasks, tâches, objectifs, notes, espaces partagés, organisation">
+  <meta name="theme-color" content="#f1fbfc">
+  <link rel="icon" href="assets/nova-mark.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="nova.css?v=9.3.0">
 </head>
 <body>
-  <header class="topbar card glass-panel">
-    <div class="top-brand">
-      <button type="button" id="sidebarToggle" aria-label="Ouvrir le menu" title="Menu">
-        <i class="bi bi-list" aria-hidden="true"></i>
-      </button>
-      <strong><i class="bi bi-stars"></i> Nova Tasks</strong>
-    </div>
-    <div id="clockWidget" class="top-clock" aria-live="polite"></div>
-    <div class="top-right">
-      <div class="top-stats">
-        <div id="statChipGems" class="stat-chip" title="Gemmes disponibles"><span id="topGemGain"></span><i class="bi bi-gem" aria-hidden="true"></i> <strong id="gemCount">0</strong></div>
-        <div id="statChipLevel" class="stat-chip" title="Niveau actuel"><i class="bi bi-trophy" aria-hidden="true"></i> <strong id="levelCount">1</strong></div>
-        <div class="stat-chip" title="Objectifs terminés"><i class="bi bi-check2-square" aria-hidden="true"></i> <strong id="topDoneCount">0</strong></div>
-        <div class="stat-chip" title="Tâches en cours"><i class="bi bi-hourglass-split" aria-hidden="true"></i> <strong id="topInProgressCount">0</strong></div>
-      </div>
+  <header class="topbar">
+    <button type="button" class="brand menu-btn" data-section="home" aria-label="Accueil Nova Tasks">
+      <span class="brand-mark"><img src="assets/nova-mark.svg" alt=""></span>
+      <span class="brand-copy"><strong>Nova Tasks</strong><small>Organise l’essentiel</small></span>
+    </button>
+
+    <nav class="desktop-nav" aria-label="Navigation principale">
+      <button type="button" class="nav-btn menu-btn active" data-section="home"><i class="bi bi-house"></i><span>Aujourd’hui</span></button>
+      <button type="button" class="nav-btn menu-btn" data-section="tasks"><i class="bi bi-check2-square"></i><span>Objectifs</span></button>
+      <button type="button" class="nav-btn menu-btn" data-section="notes"><i class="bi bi-journal-text"></i><span>Notes</span></button>
+      <button type="button" class="nav-btn menu-btn" data-section="shared"><i class="bi bi-people"></i><span>Partagé</span></button>
+      <button type="button" class="nav-btn menu-btn" data-section="stats"><i class="bi bi-bar-chart"></i><span>Statistiques</span></button>
+    </nav>
+
+    <div class="top-actions">
+      <button type="button" id="globalSearchBtn" class="search-trigger" aria-label="Rechercher dans Nova"><i class="bi bi-search"></i><span>Rechercher</span><kbd>Ctrl K</kbd></button>
+      <button type="button" id="quickCreateBtn" class="primary compact"><i class="bi bi-plus-lg"></i><span>Créer</span></button>
+      <button type="button" class="profile-button menu-btn" data-section="profile" aria-label="Profil et réglages"><i class="bi bi-person"></i><span id="accountStatusDot" class="account-status-dot local" aria-hidden="true"></span></button>
     </div>
   </header>
-  <div id="app" class="app">
-    <aside class="sidebar card">
-      <h1>Nova Tasks</h1>
-      <p class="muted">Productivité ludique, données sur ton appareil.</p>
-      <nav class="menu" aria-label="Navigation principale">
-        <button type="button" data-section="tasks" class="menu-btn active"><i class="bi bi-list-task" aria-hidden="true"></i> Tâches</button>
-        <button type="button" data-section="stats" class="menu-btn"><i class="bi bi-graph-up" aria-hidden="true"></i> Statistiques</button>
-        <button type="button" data-section="profile" class="menu-btn"><i class="bi bi-person-circle" aria-hidden="true"></i> Profil</button>
-        <button type="button" data-section="shop" class="menu-btn menu-btn-shop"><i class="bi bi-shop" aria-hidden="true"></i> Boutique</button>
-      </nav>
 
-      <hr />
-      <h3 class="sidebar-heading">Filtres</h3>
-      <div id="mailboxFilters" class="mailbox"></div>
-      <hr />
-      <div id="sidebarTipBanner" class="sidebar-tip-banner" role="status"><span class="sidebar-tip-text"></span></div>
-      <div id="miniCalendar" class="mini-calendar card"></div>
-    </aside>
+  <main class="app-main">
+    <section id="homeSection" class="page active" aria-label="Aujourd’hui"></section>
+    <section id="tasksSection" class="page" aria-label="Objectifs"></section>
+    <section id="notesSection" class="page" aria-label="Notes"></section>
+    <section id="sharedSection" class="page" aria-label="Espaces partagés"></section>
+    <section id="statsSection" class="page" aria-label="Statistiques"></section>
+    <section id="profileSection" class="page" aria-label="Profil et réglages"></section>
+  </main>
 
-    <main class="main">
-      <section id="newsFeed" class="news-feed card glass-panel"></section>
-      <section class="toolbar card" aria-label="Actions et tri">
-        <div class="toolbar-left">
-          <div class="toolbar-search-wrap">
-            <label for="taskSearch" class="visually-hidden">Rechercher dans les tâches</label>
-            <span class="toolbar-search-icon" aria-hidden="true"><i class="bi bi-search"></i></span>
-            <input type="search" id="taskSearch" class="toolbar-search-input" placeholder="Rechercher…" autocomplete="off" enterkeyhint="search" />
-          </div>
-          <button type="button" id="addTaskBtn" class="primary" title="Raccourci : Alt+N">Nouvelle tâche</button>
-          <button id="addTagBtnToolbar" type="button" title="Gérer les étiquettes"><i class="bi bi-tags" aria-hidden="true"></i> Étiquettes</button>
-          <button type="button" id="exportBtn">Exporter JSON</button>
-          <label class="import-label">Importer JSON<input id="importInput" type="file" accept=".json" /></label>
-        </div>
-        <div class="toolbar-right">
-          <label class="toolbar-sort-label">Trier par
-            <select id="sortBy" aria-label="Critère de tri">
-              <option value="deadline">Échéance</option>
-              <option value="importance">Importance</option>
-              <option value="progress">Progression</option>
-              <option value="tags">Nombre d'étiquettes</option>
-            </select>
-          </label>
-        </div>
-      </section>
-      <p class="toolbar-hint muted small" id="toolbarHint">Raccourcis : <kbd>/</kbd> ou <kbd>Ctrl</kbd>+<kbd>K</kbd> recherche · <kbd>Alt</kbd>+<kbd>N</kbd> nouvelle tâche · <kbd>Échap</kbd> ferme une fenêtre</p>
+  <nav class="mobile-nav" aria-label="Navigation mobile">
+    <button type="button" class="menu-btn active" data-section="home"><i class="bi bi-house"></i><small>Aujourd’hui</small></button>
+    <button type="button" class="menu-btn" data-section="tasks"><i class="bi bi-check2-square"></i><small>Objectifs</small></button>
+    <button type="button" id="mobileCreateBtn" class="mobile-create" aria-label="Créer"><i class="bi bi-plus-lg"></i></button>
+    <button type="button" class="menu-btn" data-section="notes"><i class="bi bi-journal-text"></i><small>Notes</small></button>
+    <button type="button" class="menu-btn" data-section="shared"><i class="bi bi-people"></i><small>Partagé</small></button>
+  </nav>
 
-      <section id="tasksSection" class="section-view"></section>
-      <section id="taskDetailSection" class="section-view hidden"></section>
-      <section id="statsSection" class="section-view hidden"></section>
-      <section id="profileSection" class="section-view hidden"></section>
-      <section id="shopSection" class="section-view hidden"></section>
-    </main>
+  <div id="quickMenu" class="quick-menu hidden" role="menu">
+    <button type="button" data-quick="task"><span><i class="bi bi-check2-square"></i></span><div><strong>Nouvel objectif</strong><small>Une action et ses étapes</small></div></button>
+    <button type="button" data-quick="note"><span><i class="bi bi-journal-plus"></i></span><div><strong>Nouvelle note</strong><small>Texte, listes et cases à cocher</small></div></button>
+    <button type="button" data-quick="shared"><span><i class="bi bi-people"></i></span><div><strong>Espace partagé</strong><small>Collaborer avec un proche</small></div></button>
   </div>
 
-  <dialog id="taskDialog" class="dialog"></dialog>
-  <dialog id="bulkDialog" class="dialog"></dialog>
-  <dialog id="tagDialog" class="dialog"></dialog>
-  <dialog id="calendarDayDialog" class="dialog"></dialog>
-  <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
-  <div id="confettiLayer" class="confetti-layer"></div>
-  <div id="sidebarOverlay"></div>
-  <footer class="app-footer">
-    <small>Made by Sören with <span title="Claude — Anthropic">Claude (Anthropic)</span> — craft with care, ship with joy.</small>
-    <small class="app-footer-quote">"We are what we repeatedly do. Excellence, then, is not an act, but a habit." — Aristotle</small>
-  </footer>
-  <script src="app.js"></script>
+  <dialog id="taskDialog" class="modal-sheet"></dialog>
+  <dialog id="noteDialog" class="modal-sheet note-sheet"></dialog>
+  <dialog id="commandDialog" class="command-sheet"></dialog>
+  <dialog id="confirmDialog" class="confirm-sheet"></dialog>
+  <dialog id="accountDialog" class="account-dialog"></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="editor.js?v=9.3.0"></script>
+  <script src="nova-app.js?v=9.3.0"></script>
+  <script src="cloud-loader.js?v=9.3.0"></script>
+  <script src="nova-ux.js?v=9.3.0"></script>
 </body>
 </html>
-

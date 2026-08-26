@@ -1,0 +1,130 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function validRole(role) { return role in ['admin', 'member', 'viewer']; }
+    function memberPath(workspaceId, userId) {
+      return /databases/$(database)/documents/workspaces/$(workspaceId)/members/$(userId);
+    }
+    function isMember(workspaceId) {
+      return signedIn() && exists(memberPath(workspaceId, request.auth.uid));
+    }
+    function isAdmin(workspaceId) {
+      return isMember(workspaceId) && get(memberPath(workspaceId, request.auth.uid)).data.role == 'admin';
+    }
+    function canEdit(workspaceId) {
+      return isMember(workspaceId) && get(memberPath(workspaceId, request.auth.uid)).data.role in ['admin', 'member'];
+    }
+    function validTask(data) {
+      return data.keys().hasAll(['title', 'description', 'priority', 'status', 'createdBy', 'updatedAt'])
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 100
+        && data.description is string && data.description.size() <= 600
+        && data.priority in [1, 2, 3]
+        && data.status in ['open', 'done']
+        && data.createdBy is string
+        && (!data.keys().hasAny(['dueDate']) || (data.dueDate is string && data.dueDate.size() <= 10));
+    }
+    function validNote(data) {
+      return data.keys().hasAll(['title', 'content', 'linkUrl', 'createdBy', 'updatedAt'])
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 100
+        && data.content is string && data.content.size() <= 12000
+        && data.linkUrl is string && data.linkUrl.size() <= 2048
+        && data.createdBy is string;
+    }
+    function ownerBootstrap(workspaceId, userId) {
+      return existsAfter(/databases/$(database)/documents/workspaces/$(workspaceId))
+        && getAfter(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId == userId
+        && request.resource.data.role == 'admin';
+    }
+    function acceptedInvite(workspaceId, userId) {
+      return request.resource.data.uid == userId
+        && validRole(request.resource.data.role)
+        && request.resource.data.inviteCode is string
+        && exists(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode))
+        && get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.workspaceId == workspaceId
+        && get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.role == request.resource.data.role
+        && get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.expiresAt > request.time;
+    }
+
+    // A user can read and edit only their own profile. Workspace index documents
+    // are created atomically with a membership and cannot grant any permissions.
+    match /users/{userId} {
+      allow read, create, update: if signedIn() && request.auth.uid == userId;
+      allow delete: if false;
+      match /workspaces/{workspaceId} {
+        allow read: if signedIn() && request.auth.uid == userId;
+        allow create: if signedIn() && request.auth.uid == userId
+          && request.resource.data.workspaceId == workspaceId
+          && existsAfter(memberPath(workspaceId, userId))
+          && request.resource.data.role == getAfter(memberPath(workspaceId, userId)).data.role;
+        allow update: if isAdmin(workspaceId)
+          && request.resource.data.workspaceId == workspaceId
+          && request.resource.data.role == getAfter(memberPath(workspaceId, userId)).data.role;
+        allow delete: if signedIn() && (request.auth.uid == userId || isAdmin(workspaceId));
+      }
+    }
+
+    // Invites are high-entropy document ids. They can be fetched by a known code,
+    // but never listed. No Firebase Storage or Cloud Functions are required.
+    match /invites/{inviteCode} {
+      allow get: if signedIn() && resource.data.expiresAt > request.time;
+      allow list: if false;
+      allow create: if signedIn() && isAdmin(request.resource.data.workspaceId);
+      allow update: if signedIn() && resource.data.workspaceId == request.resource.data.workspaceId
+        && isAdmin(resource.data.workspaceId);
+      allow delete: if signedIn() && isAdmin(resource.data.workspaceId);
+    }
+
+    match /workspaces/{workspaceId} {
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.memberCount == 1;
+      allow get: if isMember(workspaceId);
+      allow list: if false;
+      allow update: if isAdmin(workspaceId)
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.memberCount >= 1;
+      allow delete: if false;
+
+      match /members/{userId} {
+        allow read: if isMember(workspaceId);
+        allow create: if signedIn() && request.auth.uid == userId
+          && (ownerBootstrap(workspaceId, userId) || acceptedInvite(workspaceId, userId));
+        allow update: if isAdmin(workspaceId) && validRole(request.resource.data.role)
+          && request.resource.data.uid == resource.data.uid
+          && (userId != get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId
+              || request.resource.data.role == 'admin');
+        allow delete: if userId != get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerId
+          && (isAdmin(workspaceId) || (signedIn() && request.auth.uid == userId));
+      }
+
+      match /tasks/{taskId} {
+        allow read: if isMember(workspaceId);
+        allow create: if canEdit(workspaceId) && validTask(request.resource.data)
+          && request.resource.data.createdBy == request.auth.uid;
+        allow update: if canEdit(workspaceId) && validTask(request.resource.data)
+          && request.resource.data.createdBy == resource.data.createdBy;
+        allow delete: if canEdit(workspaceId);
+      }
+
+      match /notes/{noteId} {
+        allow read: if isMember(workspaceId);
+        allow create: if canEdit(workspaceId) && validNote(request.resource.data)
+          && request.resource.data.createdBy == request.auth.uid;
+        allow update: if canEdit(workspaceId) && validNote(request.resource.data)
+          && request.resource.data.createdBy == resource.data.createdBy;
+        allow delete: if canEdit(workspaceId);
+      }
+
+      // This is intentionally compact: one immutable event per meaningful action,
+      // capped in the interface at 25 documents.
+      match /activity/{activityId} {
+        allow read: if isMember(workspaceId);
+        allow create: if canEdit(workspaceId)
+          && request.resource.data.authorId == request.auth.uid
+          && request.resource.data.kind in ['workspace', 'task-created', 'task-done', 'note-saved', 'member', 'invite'];
+        allow update, delete: if false;
+      }
+    }
+  }
+}
