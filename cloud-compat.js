@@ -33,7 +33,9 @@ const signOut = () => auth.signOut();
 const updateProfile = (user, value) => user.updateProfile(value);
 const root = document.getElementById("sharedSection");
 const debug = (...values) => console.log("[Nova shared]", ...values);
+const trace = (name, details = {}) => window.NovaTrace?.step(name, details);
 debug("cloud-compat chargé", { protocol: location.protocol, root: Boolean(root) });
+trace("07 partage chargé", { root: Boolean(root) });
 
 // Les contrôles sont recréés à chaque changement d’espace ou d’onglet. Un
 // écouteur global en capture évite qu’un rendu ou un parent ne fasse perdre
@@ -43,6 +45,7 @@ document.addEventListener("click", event => {
   if (!button || !root?.contains(button)) return;
   if (button.classList.contains("nova-modal-backdrop") && event.target.closest(".nova-modal")) return;
   debug("clic détecté", { action: button.dataset.cloudAction, tag: event.target.tagName });
+  trace("08 action détectée", { action: button.dataset.cloudAction });
   event.preventDefault();
   action(button.dataset.cloudAction);
 }, true);
@@ -113,6 +116,7 @@ function subscribeWorkspace() {
 
 function friendlyError(error) {
   console.error("Nova shared", error);
+  trace("ERREUR Firebase", { code: error?.code || "unknown" });
   const permission = error.code === "permission-denied" || error.code === "firestore/permission-denied";
   flash(permission ? "Accès refusé : publie le fichier firestore.rules dans la console Firebase, puis réessaie." : "Connexion Firebase indisponible. Réessaie dans un instant.", "error");
 }
@@ -273,6 +277,7 @@ function modal(title, content) { return `<div class="nova-modal-backdrop" data-c
 function render() {
   if (!root || root.classList.contains("hidden")) return;
   debug("render", { signedIn: Boolean(cloud.user), active: Boolean(cloud.active), panel: cloud.panel, tab: cloud.tab });
+  trace("09 rendu Partagé", { signedIn: Boolean(cloud.user), active: Boolean(cloud.active), panel: cloud.panel, tab: cloud.tab });
   root.innerHTML = `${cloud.notice ? `<div class="cloud-notice ${cloud.noticeType || ""}">${esc(cloud.notice)}</div>` : ""}${sharedShell()}`;
   bind();
   if (cloud.user && cloud.active && cloud.tab === "members") loadMembers();
@@ -280,6 +285,7 @@ function render() {
 
 function bind() {
   debug("bind", { actions: root.querySelectorAll("[data-cloud-action]").length });
+  trace("10 boutons branchés", { actions: root.querySelectorAll("[data-cloud-action]").length });
   root.querySelectorAll("[data-space-id]").forEach(button => button.onclick = () => selectWorkspace(button.dataset.spaceId));
   root.querySelectorAll("[data-cloud-tab]").forEach(button => button.onclick = () => { cloud.tab = button.dataset.cloudTab; render(); });
   root.querySelectorAll("[data-task-toggle]").forEach(button => button.onclick = () => toggleTask(button.dataset.taskToggle));
@@ -298,6 +304,7 @@ function bind() {
 
 async function action(name) {
   debug("action", name);
+  trace("11 action exécutée", { action: name });
   if (name === "toggle-login") return renderLogin();
   if (name === "signout") return signOut(auth);
   if (name === "open-create") { cloud.panel = "create"; return render(); }
@@ -311,6 +318,7 @@ async function action(name) {
 }
 
 function renderLogin() {
+  trace("12 connexion affichée");
   root.innerHTML = `<div class="shared-landing nova-enter"><div class="shared-hero"><span class="eyebrow">NOVA COLLAB</span><h2>Bon retour dans<br><em>la constellation.</em></h2><p>Retrouve tes objectifs, tes notes, tes réglages et les espaces que tu partages.</p><div class="shared-orbs" aria-hidden="true"><i></i><i></i><i></i></div></div><div class="auth-card glass-panel"><div class="nova-mini"><img src="assets/nova-mark.svg" alt=""> <strong>Compte Nova</strong></div><h3>Se connecter</h3><form id="novaLoginForm" class="nova-form"><label>E-mail<input name="email" type="email" required autocomplete="email"></label><label>Mot de passe<input name="password" type="password" required autocomplete="current-password"></label><button class="nova-primary" type="submit">Continuer <span>→</span></button></form><p class="auth-switch">Pas encore de compte ? <button type="button" data-cloud-action="back-register">Créer mon compte</button></p></div></div>`;
   root.querySelector("#novaLoginForm").addEventListener("submit", login);
   root.querySelector("[data-cloud-action='back-register']").onclick = () => { cloud.panel = null; render(); };
@@ -324,15 +332,34 @@ async function register(event) {
 async function login(event) { event.preventDefault(); const data = new FormData(event.currentTarget); try { await signInWithEmailAndPassword(auth, data.get("email"), data.get("password")); } catch { accountError("E-mail ou mot de passe incorrect."); } }
 
 async function createWorkspace(event) {
-  event.preventDefault(); const data = new FormData(event.currentTarget); const workspace = doc(collection(db, "workspaces")); const member = doc(db, "workspaces", workspace.id, "members", cloud.user.uid); const index = doc(db, "users", cloud.user.uid, "workspaces", workspace.id); const title = String(data.get("title")).trim();
-  try { const description = String(data.get("description") || "").trim(); const batch = writeBatch(db); batch.set(workspace, { title, description, color: data.get("color"), ownerId: cloud.user.uid, memberCount: 1, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }); batch.set(member, { uid: cloud.user.uid, role: "admin", displayName: cloud.user.displayName || "Membre Nova", email: cloud.user.email || "", joinedAt: serverTimestamp() }); batch.set(index, { workspaceId: workspace.id, title, description, color: data.get("color"), ownerId: cloud.user.uid, role: "admin", updatedAt: serverTimestamp() }); await batch.commit(); cloud.panel = null; await loadWorkspaces(); cloud.active = cloud.workspaces.find(space => space.id === workspace.id) || cloud.active; cloud.tab = "tasks"; subscribeWorkspace(); await record("workspace", "a créé l’espace"); flash("Espace créé. Tu peux maintenant inviter ton équipe."); }
-  catch (error) { console.error(error); friendlyError(error); }
+  event.preventDefault();
+  trace("12 création démarrée");
+  const data = new FormData(event.currentTarget);
+  const title = String(data.get("title") || "").trim();
+  trace("13 formulaire lu", { titlePresent: Boolean(title) });
+  if (!title) return flash("Donne un nom à ton espace.", "error");
+  const workspace = doc(collection(db, "workspaces"));
+  const member = doc(db, "workspaces", workspace.id, "members", cloud.user.uid);
+  const index = doc(db, "users", cloud.user.uid, "workspaces", workspace.id);
+  try {
+    const description = String(data.get("description") || "").trim();
+    const batch = writeBatch(db);
+    batch.set(workspace, { title, description, color: data.get("color"), ownerId: cloud.user.uid, memberCount: 1, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    batch.set(member, { uid: cloud.user.uid, role: "admin", displayName: cloud.user.displayName || "Membre Nova", email: cloud.user.email || "", joinedAt: serverTimestamp() });
+    batch.set(index, { workspaceId: workspace.id, title, description, color: data.get("color"), ownerId: cloud.user.uid, role: "admin", updatedAt: serverTimestamp() });
+    trace("14 écriture Firebase", { workspaceId: workspace.id });
+    await batch.commit();
+    trace("15 création Firebase réussie", { workspaceId: workspace.id });
+    cloud.panel = null; await loadWorkspaces(); cloud.active = cloud.workspaces.find(space => space.id === workspace.id) || cloud.active; cloud.tab = "tasks"; subscribeWorkspace(); await record("workspace", "a créé l’espace"); flash("Espace créé. Tu peux maintenant inviter ton équipe.");
+  } catch (error) { console.error(error); trace("ERREUR création", { code: error?.code || "unknown" }); friendlyError(error); }
 }
 
 async function joinWorkspace(event) {
-  event.preventDefault(); const code = String(new FormData(event.currentTarget).get("code") || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
+  event.preventDefault(); trace("12 invitation démarrée"); const code = String(new FormData(event.currentTarget).get("code") || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
+  trace("13 code normalisé", { length: code.length });
   try {
     const inviteRef = doc(db, "invites", code);
+    trace("14 lecture invitation");
     const invite = await getDoc(inviteRef);
     if (!invite.exists() || invite.data().expiresAt?.toDate() < new Date()) throw new Error("invite-invalid");
     const info = invite.data();
@@ -342,15 +369,17 @@ async function joinWorkspace(event) {
     const batch = writeBatch(db);
     batch.set(membership, { uid: cloud.user.uid, role: info.role, displayName: cloud.user.displayName || "Membre Nova", email: cloud.user.email || "", inviteCode: code, joinedAt: serverTimestamp() });
     batch.set(userIndex, { workspaceId: info.workspaceId, title: info.workspaceTitle || "Espace partagé", color: info.workspaceColor || "violet", role: info.role, updatedAt: serverTimestamp() });
+    trace("15 écriture membre", { workspaceId: info.workspaceId });
     await batch.commit();
     // Compatibilité avec les anciens liens : la lecture devient autorisée après la création du rôle.
     if (!info.workspaceTitle) {
       const workspace = await getDoc(doc(db, "workspaces", info.workspaceId));
       if (workspace.exists()) await setDoc(userIndex, { title: workspace.data().title || "Espace partagé", color: workspace.data().color || "violet", updatedAt: serverTimestamp() }, { merge: true });
     }
+    trace("16 invitation acceptée", { workspaceId: info.workspaceId });
     cloud.pendingInvite = ""; cloud.panel = null; history.replaceState({}, "", location.pathname); await loadWorkspaces(); cloud.active = cloud.workspaces.find(space => space.id === info.workspaceId) || cloud.active; subscribeWorkspace(); await record("member", "a rejoint l’espace"); flash("Bienvenue dans l’espace partagé !");
   }
-  catch (error) { console.error(error); flash("Ce lien est invalide, expiré ou déjà utilisé.", "error"); }
+  catch (error) { console.error(error); trace("ERREUR invitation", { code: error?.code || "unknown" }); friendlyError(error); }
 }
 
 async function createInvite(event) {
