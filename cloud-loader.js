@@ -2,7 +2,7 @@
   "use strict";
 
   const emit = detail => window.dispatchEvent(new CustomEvent("nova:auth-state", { detail }));
-  const onlineUrl = "https://itssoren.github.io/novatasks/";
+  const onlineUrl = "https://itssoren.github.io/novaTasks/";
 
   if (location.protocol === "file:") {
     const message = "Les comptes et espaces partagés sont disponibles dans la version web hébergée. Cette copie locale reste utilisable pour tes données hors ligne.";
