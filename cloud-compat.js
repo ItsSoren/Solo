@@ -196,8 +196,8 @@ function sharedShell() {
     <div class="shared-layout nova-enter">
       <aside class="spaces-panel glass-panel">
         <div class="spaces-head"><div class="nova-mini"><img src="assets/nova-mark.svg" alt=""><strong>Nova collaboratif</strong></div><button class="icon-button" title="Se déconnecter" data-cloud-action="signout"><i class="bi bi-box-arrow-right"></i></button></div>
-        <button class="nova-primary wide" data-cloud-action="open-create"><i class="bi bi-plus-lg"></i> Nouvel espace</button>
-        <button class="nova-secondary wide" data-cloud-action="open-join"><i class="bi bi-link-45deg"></i> Rejoindre avec un code</button>
+        <button type="button" class="nova-primary wide" data-cloud-action="open-create"><i class="bi bi-plus-lg"></i> Nouvel espace</button>
+        <button type="button" class="nova-secondary wide" data-cloud-action="open-join"><i class="bi bi-link-45deg"></i> Rejoindre avec un code</button>
         <div class="spaces-list"><span class="list-label">TES ESPACES</span>${cloud.workspaces.length ? cloud.workspaces.map(space => `<button class="space-item ${cloud.active?.id === space.id ? "active" : ""}" data-space-id="${space.id}"><span class="space-icon ${esc(space.color || "violet")}">${ICONS[space.color] || "✦"}</span><span><strong>${esc(space.title)}</strong><small>${ROLES[space.role]}</small></span></button>`).join("") : `<p class="empty-side">Ton premier espace partagé commence ici.</p>`}</div>
         <div class="account-chip"><span>${esc((cloud.user.displayName || cloud.user.email || "N").slice(0, 1).toUpperCase())}</span><div><strong>${esc(cloud.user.displayName || "Nova membre")}</strong><small>${esc(cloud.user.email || "")}</small></div></div>
       </aside>
@@ -206,7 +206,7 @@ function sharedShell() {
 }
 
 function emptyWorkspace() {
-  return `<div class="shared-empty"><img src="assets/nova-mark.svg" alt=""><h2>Un espace pour chaque élan.</h2><p>Crée un espace pour ton équipe, ta classe ou ton projet, puis partage un lien d’invitation.</p><button class="nova-primary" data-cloud-action="open-create">Créer un espace <span>→</span></button></div>`;
+  return `<div class="shared-empty"><img src="assets/nova-mark.svg" alt=""><h2>Un espace pour chaque élan.</h2><p>Crée un espace pour ton équipe, ta classe ou ton projet, puis partage un lien d’invitation.</p><button type="button" class="nova-primary" data-cloud-action="open-create">Créer un espace <span>→</span></button></div>`;
 }
 
 function workspaceView() {
@@ -254,7 +254,7 @@ function panelView() {
   return "";
 }
 
-function modal(title, content) { return `<div class="nova-modal-backdrop" data-cloud-action="close-panel"><div class="nova-modal glass-panel" role="dialog" aria-modal="true" aria-label="${esc(title)}" onclick="event.stopPropagation()"><div class="modal-head"><h2>${esc(title)}</h2><button class="icon-button" data-cloud-action="close-panel" aria-label="Fermer"><i class="bi bi-x-lg"></i></button></div>${content}</div></div>`; }
+function modal(title, content) { return `<div class="nova-modal-backdrop" data-cloud-action="close-panel"><div class="nova-modal glass-panel" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="modal-head"><h2>${esc(title)}</h2><button type="button" class="icon-button" data-cloud-action="close-panel" aria-label="Fermer"><i class="bi bi-x-lg"></i></button></div>${content}</div></div>`; }
 
 function render() {
   if (!root || root.classList.contains("hidden")) return;
@@ -266,7 +266,13 @@ function render() {
 function bind() {
   root.querySelectorAll("[data-space-id]").forEach(button => button.onclick = () => selectWorkspace(button.dataset.spaceId));
   root.querySelectorAll("[data-cloud-tab]").forEach(button => button.onclick = () => { cloud.tab = button.dataset.cloudTab; render(); });
-  root.querySelectorAll("[data-cloud-action]").forEach(button => button.addEventListener("click", () => action(button.dataset.cloudAction)));
+  root.onclick = event => {
+    const button = event.target.closest?.("[data-cloud-action]");
+    if (!button || !root.contains(button)) return;
+    if (button.classList.contains("nova-modal-backdrop") && event.target.closest(".nova-modal")) return;
+    event.preventDefault();
+    action(button.dataset.cloudAction);
+  };
   root.querySelectorAll("[data-task-toggle]").forEach(button => button.onclick = () => toggleTask(button.dataset.taskToggle));
   root.querySelectorAll("[data-task-edit]").forEach(button => button.onclick = () => { cloud.editingTask = cloud.tasks.find(task => task.id === button.dataset.taskEdit); cloud.panel = "task"; render(); });
   root.querySelectorAll("[data-task-delete]").forEach(button => button.onclick = () => deleteTask(button.dataset.taskDelete));
