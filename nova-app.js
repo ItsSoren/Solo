@@ -4,6 +4,15 @@
   const STORAGE_KEY = "nova_tasks_v5";
   const DAY = 86400000;
   const IMPORTANCE = { 1: "Tranquille", 2: "Important", 3: "Prioritaire" };
+  const THEMES = [
+    { id: "opal-light", label: "Opale claire", description: "Blanc nacré & turquoise", demo: "light" },
+    { id: "opal-dark", label: "Opale nuit", description: "Bleu profond & reflets aqua", demo: "dark" },
+    { id: "radiant-crimson", label: "Radiant Crimson", description: "Corail lumineux & crème", demo: "crimson" },
+    { id: "radiant-crimson-dark", label: "Crimson nuit", description: "Bordeaux doux & rose", demo: "crimson-dark" },
+    { id: "ocean-peace", label: "Ocean Peace", description: "Ciel calme & lagon", demo: "ocean" },
+    { id: "ocean-peace-dark", label: "Ocean nuit", description: "Marine profond & écume", demo: "ocean-dark" }
+  ];
+  const normalizeTheme = value => THEMES.some(theme => theme.id === value) ? value : "opal-light";
   const esc = value => window.NovaEditor.escapeHtml(value == null ? "" : String(value));
   const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -71,7 +80,7 @@
         notes: (parsed.notes || []).map(normalizeNote),
         tags: Array.isArray(parsed.tags) ? parsed.tags : [],
         profile: { ...empty.profile, ...(parsed.profile || {}), name: parsed.profile?.name === "Player" ? "" : (parsed.profile?.name || "") },
-        settings: { ...empty.settings, ...(parsed.settings || {}), uiTheme: parsed.settings?.uiTheme === "opal-dark" ? "opal-dark" : "opal-light" }
+        settings: { ...empty.settings, ...(parsed.settings || {}), uiTheme: normalizeTheme(parsed.settings?.uiTheme) }
       };
     } catch (error) {
       console.warn("Nova: anciennes données illisibles, base locale vierge chargée.", error);
@@ -135,10 +144,12 @@
     dot.className = `account-status-dot ${ui.account.status === "signed-in" ? "online" : ui.account.status === "protocol-blocked" || ui.account.status === "unavailable" ? "blocked" : "local"}`;
   }
   function applyTheme() {
-    const theme = state.settings.uiTheme === "opal-dark" ? "opal-dark" : "opal-light";
+    const theme = normalizeTheme(state.settings.uiTheme);
+    state.settings.uiTheme = theme;
     document.documentElement.dataset.theme = theme;
     document.body.classList.toggle("compact-lists", !!state.settings.compactLists);
-    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "opal-dark" ? "#071a21" : "#f1fbfc");
+    const metaColor = THEMES.find(item => item.id === theme)?.demo.includes("dark") ? "#071a21" : "#f1fbfc";
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", metaColor);
   }
 
   function toast(message) {
@@ -316,7 +327,7 @@
 
   function renderProfile() {
     const root = document.getElementById("profileSection");
-    const dark = state.settings.uiTheme === "opal-dark";
+    const activeTheme = normalizeTheme(state.settings.uiTheme);
     const account = accountCopy();
     root.innerHTML = `<div class="settings-page">
       ${pageHeader("Préférences", "Profil & réglages", "Les réglages essentiels, regroupés au même endroit.")}
@@ -324,7 +335,7 @@
       <nav class="settings-tabs" aria-label="Catégories de réglages"><button class="${ui.settingsTab === "profile" ? "active" : ""}" data-settings-tab="profile"><i class="bi bi-person"></i><span>Profil</span></button><button class="${ui.settingsTab === "appearance" ? "active" : ""}" data-settings-tab="appearance"><i class="bi bi-palette"></i><span>Thème</span></button><button class="${ui.settingsTab === "help" ? "active" : ""}" data-settings-tab="help"><i class="bi bi-compass"></i><span>Aide</span></button><button class="${ui.settingsTab === "data" ? "active" : ""}" data-settings-tab="data"><i class="bi bi-database"></i><span>Données</span></button></nav>
       <div class="settings-grid">
         <section class="setting-card panel ${ui.settingsTab === "profile" ? "mobile-active" : ""}" data-setting-panel="profile"><div class="setting-title"><span><i class="bi bi-person"></i></span><div><h2>Ton profil</h2><p>Utilisé aussi dans les espaces partagés.</p></div></div><div class="profile-fields"><div class="avatar-preview">${state.profile.avatar ? `<img src="${esc(state.profile.avatar)}" alt="">` : '<i class="bi bi-person"></i>'}</div><label>Nom affiché<input id="profileName" value="${esc(state.profile.name)}" placeholder="Ton prénom ou pseudo"></label></div><label class="secondary file-button"><i class="bi bi-image"></i> Choisir une photo<input id="profileAvatar" type="file" accept="image/*"></label><button class="primary" id="saveProfile">Enregistrer le profil</button></section>
-        <section class="setting-card panel ${ui.settingsTab === "appearance" ? "mobile-active" : ""}" data-setting-panel="appearance"><div class="setting-title"><span><i class="bi bi-palette"></i></span><div><h2>Apparence</h2><p>La même logique claire/sombre que Flow.</p></div></div><div class="theme-choice"><button data-theme-choice="opal-light" class="${!dark ? "active" : ""}"><i class="theme-demo light"></i><span><strong>Opale claire</strong><small>Blanc nacré & turquoise</small></span></button><button data-theme-choice="opal-dark" class="${dark ? "active" : ""}"><i class="theme-demo dark"></i><span><strong>Opale nuit</strong><small>Bleu profond & reflets aqua</small></span></button></div><label class="toggle-row"><span><strong>Listes compactes</strong><small>Affiche davantage d’éléments</small></span><input id="compactLists" type="checkbox" ${state.settings.compactLists ? "checked" : ""}></label></section>
+         <section class="setting-card panel ${ui.settingsTab === "appearance" ? "mobile-active" : ""}" data-setting-panel="appearance"><div class="setting-title"><span><i class="bi bi-palette"></i></span><div><h2>Apparence</h2><p>Des ambiances complètes, chacune en version claire ou sombre.</p></div></div><div class="theme-choice">${THEMES.map(theme => `<button type="button" data-theme-choice="${theme.id}" class="${activeTheme === theme.id ? "active" : ""}"><i class="theme-demo ${theme.demo}"></i><span><strong>${theme.label}</strong><small>${theme.description}</small></span></button>`).join("")}</div><label class="toggle-row"><span><strong>Listes compactes</strong><small>Affiche davantage d’éléments</small></span><input id="compactLists" type="checkbox" ${state.settings.compactLists ? "checked" : ""}></label></section>
         <section class="setting-card panel ${ui.settingsTab === "help" ? "mobile-active" : ""}" data-setting-panel="help"><div class="setting-title"><span><i class="bi bi-compass"></i></span><div><h2>Aide</h2><p>Le tutoriel ne s’affiche automatiquement qu’une fois.</p></div></div><button class="secondary full" id="replayTutorial"><i class="bi bi-play-circle"></i> Revoir le mini tutoriel</button><button class="secondary full" id="openSearchSettings"><i class="bi bi-search"></i> Rechercher une fonction</button></section>
         <section class="setting-card panel ${ui.settingsTab === "data" ? "mobile-active" : ""}" data-setting-panel="data"><div class="setting-title"><span><i class="bi bi-database"></i></span><div><h2>Données locales</h2><p>Compatible avec les sauvegardes Nova précédentes.</p></div></div><div class="data-actions"><button class="secondary" id="exportData"><i class="bi bi-download"></i> Exporter</button><label class="secondary file-button"><i class="bi bi-upload"></i> Importer<input id="importData" type="file" accept=".json,application/json"></label></div><button class="danger-button full" id="resetData"><i class="bi bi-trash3"></i> Réinitialiser les données locales</button></section>
       </div>

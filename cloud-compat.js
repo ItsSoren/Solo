@@ -220,7 +220,7 @@ function sharedShell() {
 }
 
 function emptyWorkspace() {
-  return `<div class="shared-empty"><img src="assets/nova-mark.svg" alt=""><h2>Un espace pour chaque élan.</h2><p>Crée un espace pour ton équipe, ta classe ou ton projet, puis partage un lien d’invitation.</p><button type="button" class="nova-primary" data-cloud-action="open-create">Créer un espace <span>→</span></button></div>`;
+  return `<div class="shared-empty"><img src="assets/nova-mark.svg" alt=""><h2>Un espace pour chaque élan.</h2><p>Crée un espace pour ton équipe, ta classe ou ton projet, puis partage un lien d’invitation.</p><div class="shared-empty-actions"><button type="button" class="nova-primary" data-cloud-action="open-create">Créer un espace <span>→</span></button><button type="button" class="nova-secondary" data-cloud-action="open-join"><i class="bi bi-link-45deg"></i> Rejoindre avec un code</button></div></div>`;
 }
 
 function workspaceView() {
