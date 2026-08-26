@@ -32,7 +32,7 @@ const signInWithEmailAndPassword = (_, email, password) => auth.signInWithEmailA
 const signOut = () => auth.signOut();
 const updateProfile = (user, value) => user.updateProfile(value);
 const root = document.getElementById("sharedSection");
-const debug = (...values) => console.info("[Nova shared]", ...values);
+const debug = (...values) => console.log("[Nova shared]", ...values);
 debug("cloud-compat chargé", { protocol: location.protocol, root: Boolean(root) });
 
 // Les contrôles sont recréés à chaque changement d’espace ou d’onglet. Un

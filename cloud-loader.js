@@ -1,6 +1,10 @@
 (() => {
   "use strict";
 
+  const debug = (...values) => console.log("[Nova loader]", ...values);
+  debug("démarrage", { protocol: location.protocol });
+  window.addEventListener("error", event => console.error("[Nova loader] erreur runtime", event.message || event.error || event));
+
   const emit = detail => window.dispatchEvent(new CustomEvent("nova:auth-state", { detail }));
   const onlineUrl = "https://itssoren.github.io/novaTasks/";
 
@@ -29,18 +33,19 @@
     "https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js",
     "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js",
     "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js",
-    "cloud-compat.js?v=9.3.5"
+    "cloud-compat.js?v=9.3.6"
   ];
 
   const load = src => new Promise((resolve, reject) => {
+    debug("chargement", src);
     const script = document.createElement("script");
     script.src = src;
-    script.onload = resolve;
-    script.onerror = reject;
+    script.onload = () => { debug("chargé", src); resolve(); };
+    script.onerror = error => { console.error("[Nova loader] échec", src, error); reject(error); };
     document.head.append(script);
   });
 
-  scripts.reduce((chain, src) => chain.then(() => load(src)), Promise.resolve()).catch(error => {
+  scripts.reduce((chain, src) => chain.then(() => load(src)), Promise.resolve()).then(() => debug("Firebase et partage prêts")).catch(error => {
     console.error("Nova cloud loader", error);
     emit({ status: "unavailable", message: "Connexion au service Nova indisponible." });
   });
