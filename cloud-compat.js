@@ -379,7 +379,12 @@ async function joinWorkspace(event) {
     trace("16 invitation acceptée", { workspaceId: info.workspaceId });
     cloud.pendingInvite = ""; cloud.panel = null; history.replaceState({}, "", location.pathname); await loadWorkspaces(); cloud.active = cloud.workspaces.find(space => space.id === info.workspaceId) || cloud.active; subscribeWorkspace(); await record("member", "a rejoint l’espace"); flash("Bienvenue dans l’espace partagé !");
   }
-  catch (error) { console.error(error); trace("ERREUR invitation", { code: error?.code || "unknown" }); friendlyError(error); }
+  catch (error) {
+    console.error(error);
+    trace("ERREUR invitation", { code: error?.code || error?.message || "unknown" });
+    if (error?.message === "invite-invalid") flash("Ce lien est invalide, expiré ou déjà utilisé.", "error");
+    else friendlyError(error);
+  }
 }
 
 async function createInvite(event) {
