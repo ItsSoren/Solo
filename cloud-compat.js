@@ -32,6 +32,8 @@ const signInWithEmailAndPassword = (_, email, password) => auth.signInWithEmailA
 const signOut = () => auth.signOut();
 const updateProfile = (user, value) => user.updateProfile(value);
 const root = document.getElementById("sharedSection");
+const debug = (...values) => console.info("[Nova shared]", ...values);
+debug("cloud-compat chargé", { protocol: location.protocol, root: Boolean(root) });
 
 // Les contrôles sont recréés à chaque changement d’espace ou d’onglet. Un
 // écouteur global en capture évite qu’un rendu ou un parent ne fasse perdre
@@ -40,6 +42,7 @@ document.addEventListener("click", event => {
   const button = event.target.closest?.("[data-cloud-action]");
   if (!button || !root?.contains(button)) return;
   if (button.classList.contains("nova-modal-backdrop") && event.target.closest(".nova-modal")) return;
+  debug("clic détecté", { action: button.dataset.cloudAction, tag: event.target.tagName });
   event.preventDefault();
   action(button.dataset.cloudAction);
 }, true);
@@ -269,12 +272,14 @@ function modal(title, content) { return `<div class="nova-modal-backdrop" data-c
 
 function render() {
   if (!root || root.classList.contains("hidden")) return;
+  debug("render", { signedIn: Boolean(cloud.user), active: Boolean(cloud.active), panel: cloud.panel, tab: cloud.tab });
   root.innerHTML = `${cloud.notice ? `<div class="cloud-notice ${cloud.noticeType || ""}">${esc(cloud.notice)}</div>` : ""}${sharedShell()}`;
   bind();
   if (cloud.user && cloud.active && cloud.tab === "members") loadMembers();
 }
 
 function bind() {
+  debug("bind", { actions: root.querySelectorAll("[data-cloud-action]").length });
   root.querySelectorAll("[data-space-id]").forEach(button => button.onclick = () => selectWorkspace(button.dataset.spaceId));
   root.querySelectorAll("[data-cloud-tab]").forEach(button => button.onclick = () => { cloud.tab = button.dataset.cloudTab; render(); });
   root.querySelectorAll("[data-task-toggle]").forEach(button => button.onclick = () => toggleTask(button.dataset.taskToggle));
@@ -292,6 +297,7 @@ function bind() {
 }
 
 async function action(name) {
+  debug("action", name);
   if (name === "toggle-login") return renderLogin();
   if (name === "signout") return signOut(auth);
   if (name === "open-create") { cloud.panel = "create"; return render(); }
@@ -409,6 +415,7 @@ async function loadActivity() { if (!cloud.active) return; try { const items = a
 
 document.querySelectorAll(".menu-btn").forEach(button => button.addEventListener("click", () => showShared(button.dataset.section === "shared")));
 onAuthStateChanged(auth, async (user) => {
+  debug("auth state", { signedIn: Boolean(user) });
   stopWorkspaceListeners();
   cloud.user = user; cloud.workspaces = []; cloud.active = null; cloud.tasks = []; cloud.notes = []; cloud.activity = [];
   emitAuth(user ? "signed-in" : "signed-out", user);
