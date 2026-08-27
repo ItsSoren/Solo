@@ -129,5 +129,87 @@ service cloud.firestore {
         allow update, delete: if false;
       }
     }
+
+    // Flow uses the same Firebase project but a completely separate namespace.
+    // These paths must never be merged with the Sōlo/NovaTasks collections above.
+    function flowSignedIn() { return request.auth != null; }
+    function flowMemberPath(workspaceId, userId) {
+      return /databases/$(database)/documents/flowWorkspaces/$(workspaceId)/members/$(userId);
+    }
+    function flowMember(workspaceId) {
+      return flowSignedIn() && exists(flowMemberPath(workspaceId, request.auth.uid));
+    }
+    function flowAdmin(workspaceId) {
+      return flowMember(workspaceId) && get(flowMemberPath(workspaceId, request.auth.uid)).data.role == 'admin';
+    }
+    function flowCanEdit(workspaceId) {
+      return flowMember(workspaceId)
+        && get(flowMemberPath(workspaceId, request.auth.uid)).data.role in ['admin', 'member'];
+    }
+    function flowRole(role) { return role in ['admin', 'member', 'viewer']; }
+    function flowOwnerBootstrap(workspaceId, userId) {
+      return existsAfter(/databases/$(database)/documents/flowWorkspaces/$(workspaceId))
+        && getAfter(/databases/$(database)/documents/flowWorkspaces/$(workspaceId)).data.ownerId == userId
+        && request.resource.data.role == 'admin';
+    }
+    function flowAcceptedInvite(workspaceId, userId) {
+      return request.resource.data.uid == userId
+        && flowRole(request.resource.data.role)
+        && request.resource.data.inviteCode is string
+        && exists(/databases/$(database)/documents/flowInvites/$(request.resource.data.inviteCode))
+        && get(/databases/$(database)/documents/flowInvites/$(request.resource.data.inviteCode)).data.workspaceId == workspaceId
+        && get(/databases/$(database)/documents/flowInvites/$(request.resource.data.inviteCode)).data.role == request.resource.data.role
+        && get(/databases/$(database)/documents/flowInvites/$(request.resource.data.inviteCode)).data.expiresAt > request.time;
+    }
+
+    match /flowUsers/{userId} {
+      allow read, create, update: if flowSignedIn() && request.auth.uid == userId;
+      allow delete: if false;
+      match /workspaces/{workspaceId} {
+        allow read, create, update, delete: if flowSignedIn() && request.auth.uid == userId;
+      }
+    }
+
+    match /flowWorkspaces/{workspaceId} {
+      allow create: if flowSignedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.memberCount == 1;
+      allow get: if flowMember(workspaceId);
+      allow list: if false;
+      allow update: if flowAdmin(workspaceId)
+        && request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if false;
+
+      match /members/{userId} {
+        allow read: if flowMember(workspaceId);
+        allow create: if flowSignedIn() && request.auth.uid == userId
+          && (flowOwnerBootstrap(workspaceId, userId) || flowAcceptedInvite(workspaceId, userId));
+        allow update: if flowAdmin(workspaceId) && flowRole(request.resource.data.role)
+          && request.resource.data.uid == resource.data.uid;
+        allow delete: if flowSignedIn()
+          && userId != get(/databases/$(database)/documents/flowWorkspaces/$(workspaceId)).data.ownerId
+          && (flowAdmin(workspaceId) || request.auth.uid == userId);
+      }
+      match /transactions/{transactionId} {
+        allow read: if flowMember(workspaceId);
+        allow create, update, delete: if flowCanEdit(workspaceId);
+      }
+      match /recurring/{recurringId} {
+        allow read: if flowMember(workspaceId);
+        allow create, update, delete: if flowCanEdit(workspaceId);
+      }
+      match /goals/{goalId} {
+        allow read: if flowMember(workspaceId);
+        allow create, update, delete: if flowCanEdit(workspaceId);
+      }
+    }
+
+    match /flowInvites/{code} {
+      allow get: if flowSignedIn();
+      allow list: if false;
+      allow create: if flowSignedIn() && flowAdmin(request.resource.data.workspaceId);
+      allow update: if flowSignedIn() && flowAdmin(resource.data.workspaceId);
+      allow delete: if flowSignedIn() && flowAdmin(resource.data.workspaceId);
+    }
   }
 }
