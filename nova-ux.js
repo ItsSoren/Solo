@@ -2,6 +2,8 @@
   const TUTORIAL_KEY = "nova_tasks_tutorial_v9_seen";
   const STARTUP_KEY = "solo_startup_choice_v1";
   const STORAGE_KEY = "nova_tasks_v5";
+  const storageGet = key => { try { return globalThis.localStorage?.getItem(key) || ""; } catch { return ""; } };
+  const storageSet = (key, value) => { try { globalThis.localStorage?.setItem(key, value); } catch {} };
   const steps = [
     { icon: "bi-house-heart", eyebrow: "1 sur 3 · AUJOURD’HUI", title: "L’essentiel, dès l’ouverture.", text: "Sōlo te montre le prochain objectif, les échéances proches et tes notes rapides sans surcharger l’écran." },
     { icon: "bi-check2-square", eyebrow: "2 sur 3 · OBJECTIFS & NOTES", title: "Écris vite, organise ensuite.", text: "Crée un objectif simple ou ouvre une note en plein écran pour ajouter titres, listes, liens et cases à cocher." },
@@ -12,7 +14,7 @@
 
   function localSummary() {
     try {
-      const state = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      const state = JSON.parse(storageGet(STORAGE_KEY) || "{}");
       const tasks = Array.isArray(state.tasks) ? state.tasks.length : 0;
       const notes = Array.isArray(state.notes) ? state.notes.length : 0;
       const hasProfile = Boolean(state.profile?.name);
@@ -21,12 +23,12 @@
   }
 
   function openTutorialSoon() {
-    if (!localStorage.getItem(TUTORIAL_KEY)) window.setTimeout(open, 220);
+    if (!storageGet(TUTORIAL_KEY)) window.setTimeout(open, 220);
   }
 
   function requestLogin() {
     tutorialAfterAuth = true;
-    localStorage.setItem(STARTUP_KEY, "account");
+    storageSet(STARTUP_KEY, "account");
     const account = window.NovaAccount;
     if (account?.open) account.open("login");
     else if (account?.openOnline) { account.openOnline(); openTutorialSoon(); }
@@ -46,8 +48,8 @@
     dialog.innerHTML = `<div class="welcome-card"><span class="welcome-mark"><img src="assets/solo-mark-opal.png" alt=""></span><span class="eyebrow">BIENVENUE DANS SŌLO</span><h2>Ton espace, à ton rythme.</h2><p>Tu peux commencer tout de suite, ou te connecter pour retrouver tes objectifs et tes notes sur tous tes appareils.</p>${summary.hasData ? `<div class="welcome-warning"><i class="bi bi-shield-exclamation"></i><span>Tu as déjà des informations enregistrées sur cet appareil. Elles resteront locales tant que tu n’auras pas choisi comment les synchroniser.</span></div>` : `<div class="welcome-warning soft"><i class="bi bi-info-circle"></i><span>Sans connexion, tes données restent uniquement sur cet appareil.</span></div>`}<div class="welcome-actions"><button type="button" class="primary" id="welcomeLogin"><i class="bi bi-cloud-arrow-up"></i> Se connecter</button><button type="button" class="secondary" id="welcomeOffline"><i class="bi bi-phone"></i> Continuer hors ligne</button></div><small>Tu pourras changer d’avis depuis Profil &amp; réglages.</small></div>`;
     document.body.appendChild(dialog);
     dialog.querySelector("#welcomeLogin").onclick = () => { dialog.close(); requestLogin(); };
-    dialog.querySelector("#welcomeOffline").onclick = () => { localStorage.setItem(STARTUP_KEY, "offline"); dialog.close(); openTutorialSoon(); };
-    dialog.addEventListener("cancel", event => { event.preventDefault(); localStorage.setItem(STARTUP_KEY, "offline"); dialog.close(); openTutorialSoon(); });
+    dialog.querySelector("#welcomeOffline").onclick = () => { storageSet(STARTUP_KEY, "offline"); dialog.close(); openTutorialSoon(); };
+    dialog.addEventListener("cancel", event => { event.preventDefault(); storageSet(STARTUP_KEY, "offline"); dialog.close(); openTutorialSoon(); });
     return dialog;
   }
 
@@ -90,15 +92,15 @@
   }
 
   function close() {
-    localStorage.setItem(TUTORIAL_KEY, "1");
+    storageSet(TUTORIAL_KEY, "1");
     const dialog = document.getElementById("novaTutorial");
     if (dialog?.open) dialog.close();
   }
 
   window.NovaTutorial = { open };
   document.addEventListener("DOMContentLoaded", () => {
-    if (!localStorage.getItem(STARTUP_KEY)) window.setTimeout(openWelcome, 180);
-    else if (!localStorage.getItem(TUTORIAL_KEY)) window.setTimeout(open, 350);
+    if (!storageGet(STARTUP_KEY)) window.setTimeout(openWelcome, 180);
+    else if (!storageGet(TUTORIAL_KEY)) window.setTimeout(open, 350);
   });
   window.addEventListener("nova:auth-ready", event => {
     if (event.detail?.status === "signed-in" && tutorialAfterAuth) {
@@ -108,7 +110,7 @@
   });
   window.addEventListener("nova:auth-state", event => {
     if (event.detail?.status === "signed-in") {
-      localStorage.setItem(STARTUP_KEY, "account");
+      storageSet(STARTUP_KEY, "account");
       document.getElementById("soloWelcome")?.close();
     }
   });
@@ -119,7 +121,7 @@
   window.addEventListener("nova:account-closed", () => {
     if (tutorialAfterAuth) {
       tutorialAfterAuth = false;
-      localStorage.setItem(STARTUP_KEY, "offline");
+      storageSet(STARTUP_KEY, "offline");
       openTutorialSoon();
     }
   });
