@@ -534,7 +534,7 @@
     document.getElementById("globalSearchBtn").onclick = openCommandPalette;
     document.getElementById("quickCreateBtn").onclick = event => { event.stopPropagation(); toggleQuickMenu(); };
     document.getElementById("mobileCreateBtn").onclick = event => { event.stopPropagation(); toggleQuickMenu(); };
-    document.getElementById("quickMenu").querySelectorAll("[data-quick]").forEach(button => button.onclick = () => { const action = button.dataset.quick; closeQuickMenu(); if (action === "task") openTaskDialog(); if (action === "note") openNoteDialog(); if (action === "shared") navigate("shared"); });
+    document.getElementById("quickMenu").querySelectorAll("[data-quick]").forEach(button => button.onclick = () => { const action = button.dataset.quick; closeQuickMenu(); if (action === "task") openTaskDialog(); if (action === "note") openNoteDialog(); if (action === "shared") { navigate("shared"); window.dispatchEvent(new CustomEvent("nova:shared-create")); } });
     document.addEventListener("click", event => { if (!event.target.closest("#quickMenu,#quickCreateBtn,#mobileCreateBtn")) closeQuickMenu(); });
     document.addEventListener("keydown", event => {
       const field = event.target.matches?.("input,textarea,select") || event.target.isContentEditable;

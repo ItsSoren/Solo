@@ -213,6 +213,16 @@ function showShared(visible) {
   if (visible) render();
 }
 
+// Le raccourci « + > Espace partagé » doit arriver directement sur le formulaire,
+// y compris sur mobile, sans imposer un second clic dans l’onglet Partagé.
+window.addEventListener("nova:shared-create", () => {
+  if (!root) return;
+  showShared(true);
+  if (!cloud.user) return;
+  cloud.panel = "create";
+  render();
+});
+
 function sharedShell() {
   if (!cloud.user) return `
     <div class="shared-landing nova-enter">
