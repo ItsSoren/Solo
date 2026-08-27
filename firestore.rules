@@ -15,6 +15,37 @@ service cloud.firestore {
     function canEdit(workspaceId) {
       return isMember(workspaceId) && get(memberPath(workspaceId, request.auth.uid)).data.role in ['admin', 'member'];
     }
+    // Flow partage le projet Firebase, mais possède ses propres collections.
+    // Ces helpers ne lisent jamais les collections Sōlo/NovaTasks.
+    function flowSignedIn() { return request.auth != null; }
+    function flowMemberPath(workspaceId, userId) {
+      return /databases/$(database)/documents/flowWorkspaces/$(workspaceId)/members/$(userId);
+    }
+    function flowMember(workspaceId) {
+      return flowSignedIn() && exists(flowMemberPath(workspaceId, request.auth.uid));
+    }
+    function flowAdmin(workspaceId) {
+      return flowMember(workspaceId) && get(flowMemberPath(workspaceId, request.auth.uid)).data.role == 'admin';
+    }
+    function flowCanEdit(workspaceId) {
+      return flowMember(workspaceId)
+        && get(flowMemberPath(workspaceId, request.auth.uid)).data.role in ['admin', 'member'];
+    }
+    function flowRole(role) { return role in ['admin', 'member', 'viewer']; }
+    function flowOwnerBootstrap(workspaceId, userId) {
+      return existsAfter(/databases/$(database)/documents/flowWorkspaces/$(workspaceId))
+        && getAfter(/databases/$(database)/documents/flowWorkspaces/$(workspaceId)).data.ownerId == userId
+        && request.resource.data.role == 'admin';
+    }
+    function flowAcceptedInvite(workspaceId, userId) {
+      return request.resource.data.uid == userId
+        && flowRole(request.resource.data.role)
+        && request.resource.data.inviteCode is string
+        && exists(/databases/$(database)/documents/flowInvites/$(request.resource.data.inviteCode))
+        && get(/databases/$(database)/documents/flowInvites/$(request.resource.data.inviteCode)).data.workspaceId == workspaceId
+        && get(/databases/$(database)/documents/flowInvites/$(request.resource.data.inviteCode)).data.role == request.resource.data.role
+        && get(/databases/$(database)/documents/flowInvites/$(request.resource.data.inviteCode)).data.expiresAt > request.time;
+    }
     function validTask(data) {
       return data.keys().hasAll(['title', 'description', 'priority', 'status', 'createdBy', 'updatedAt'])
         && data.title is string && data.title.size() > 0 && data.title.size() <= 100
@@ -128,38 +159,6 @@ service cloud.firestore {
           && request.resource.data.kind in ['workspace', 'task-created', 'task-done', 'note-saved', 'member', 'invite'];
         allow update, delete: if false;
       }
-    }
-
-    // Flow uses the same Firebase project but a completely separate namespace.
-    // These paths must never be merged with the Sōlo/NovaTasks collections above.
-    function flowSignedIn() { return request.auth != null; }
-    function flowMemberPath(workspaceId, userId) {
-      return /databases/$(database)/documents/flowWorkspaces/$(workspaceId)/members/$(userId);
-    }
-    function flowMember(workspaceId) {
-      return flowSignedIn() && exists(flowMemberPath(workspaceId, request.auth.uid));
-    }
-    function flowAdmin(workspaceId) {
-      return flowMember(workspaceId) && get(flowMemberPath(workspaceId, request.auth.uid)).data.role == 'admin';
-    }
-    function flowCanEdit(workspaceId) {
-      return flowMember(workspaceId)
-        && get(flowMemberPath(workspaceId, request.auth.uid)).data.role in ['admin', 'member'];
-    }
-    function flowRole(role) { return role in ['admin', 'member', 'viewer']; }
-    function flowOwnerBootstrap(workspaceId, userId) {
-      return existsAfter(/databases/$(database)/documents/flowWorkspaces/$(workspaceId))
-        && getAfter(/databases/$(database)/documents/flowWorkspaces/$(workspaceId)).data.ownerId == userId
-        && request.resource.data.role == 'admin';
-    }
-    function flowAcceptedInvite(workspaceId, userId) {
-      return request.resource.data.uid == userId
-        && flowRole(request.resource.data.role)
-        && request.resource.data.inviteCode is string
-        && exists(/databases/$(database)/documents/flowInvites/$(request.resource.data.inviteCode))
-        && get(/databases/$(database)/documents/flowInvites/$(request.resource.data.inviteCode)).data.workspaceId == workspaceId
-        && get(/databases/$(database)/documents/flowInvites/$(request.resource.data.inviteCode)).data.role == request.resource.data.role
-        && get(/databases/$(database)/documents/flowInvites/$(request.resource.data.inviteCode)).data.expiresAt > request.time;
     }
 
     match /flowUsers/{userId} {
