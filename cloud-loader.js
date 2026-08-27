@@ -26,7 +26,7 @@
     window.addEventListener("DOMContentLoaded", () => {
       const shared = document.getElementById("sharedSection");
       if (!shared) return;
-      shared.innerHTML = `<div class="protocol-help panel"><img src="assets/nova-mark-opal.png" alt=""><span class="eyebrow">VERSION WEB</span><h1>Le partage est prêt dans la version en ligne.</h1><p>${message}</p><a class="primary protocol-online-link" href="${onlineUrl}" target="_blank" rel="noopener noreferrer">Ouvrir Nova en ligne <i class="bi bi-arrow-up-right"></i></a><small class="protocol-local-note">Les objectifs et notes locales restent disponibles sur cet appareil.</small></div>`;
+      shared.innerHTML = `<div class="protocol-help panel"><img src="assets/solo-mark-opal.png" alt=""><span class="eyebrow">VERSION WEB</span><h1>Le partage est prêt dans la version en ligne.</h1><p>${message}</p><a class="primary protocol-online-link" href="${onlineUrl}" target="_blank" rel="noopener noreferrer">Ouvrir Sōlo en ligne <i class="bi bi-arrow-up-right"></i></a><small class="protocol-local-note">Les objectifs et notes locales restent disponibles sur cet appareil.</small></div>`;
     });
     return;
   }
@@ -35,7 +35,7 @@
     "https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js",
     "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js",
     "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js",
-    "cloud-compat.js?v=9.4.0"
+    "cloud-compat.js?v=9.4.1"
   ];
 
   const load = src => new Promise((resolve, reject) => {
@@ -49,6 +49,6 @@
 
   scripts.reduce((chain, src) => chain.then(() => load(src)), Promise.resolve()).then(() => { debug("Firebase et partage prêts"); trace("06 Firebase et partage prêts"); }).catch(error => {
     console.error("Nova cloud loader", error);
-    emit({ status: "unavailable", message: "Connexion au service Nova indisponible." });
+    emit({ status: "unavailable", message: "Connexion au service Sōlo indisponible." });
   });
 })();

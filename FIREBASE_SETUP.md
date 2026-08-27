@@ -1,12 +1,12 @@
-# Activer Nova collaboratif — Firebase Spark
+# Activer Sōlo collaboratif — Firebase Spark
 
-Nova Tasks reste utilisable sans compte avec la clé locale historique `nova_tasks_v5`. Une fois connecté, le compte est global : objectifs personnels, notes, profil texte et réglages sont sauvegardés dans un seul document Firestore, tandis que les espaces communs restent séparés. Nova n’utilise ni Firebase Storage, ni Functions, ni Analytics, ni service payant.
+Sōlo reste utilisable sans compte avec la clé locale historique `nova_tasks_v5`. Une fois connecté, le compte est global : objectifs personnels, notes, profil texte et réglages sont sauvegardés dans un seul document Firestore, tandis que les espaces communs restent séparés. Sōlo n’utilise ni Firebase Storage, ni Functions, ni Analytics, ni service payant.
 
-## Lancer Nova sur cet ordinateur
+## Lancer Sōlo sur cet ordinateur
 
-La version recommandée est la version web hébergée : ouvre `https://itssoren.github.io/novaTasks/`. Elle active directement les comptes, la synchronisation personnelle et les espaces partagés, sans lancer de fichier local.
+La version recommandée est la version web hébergée : ouvre `https://itssoren.github.io/novaTasks/` (le chemin restera ainsi tant que le dépôt GitHub n’est pas renommé). Elle active directement les comptes, la synchronisation personnelle et les espaces partagés, sans lancer de fichier local.
 
-Un navigateur ne peut pas démarrer un serveur HTTP depuis un simple `file://` (c’est une restriction de sécurité). Dans ce mode, Nova reste donc utilisable hors ligne pour les données locales et affiche un lien vers la version web pour les fonctions cloud. Le petit lanceur local fourni dans le dossier est uniquement un secours de développement, pas une étape nécessaire pour les utilisateurs.
+Un navigateur ne peut pas démarrer un serveur HTTP depuis un simple `file://` (c’est une restriction de sécurité). Dans ce mode, Sōlo reste donc utilisable hors ligne pour les données locales et affiche un lien vers la version web pour les fonctions cloud. Le petit lanceur local fourni dans le dossier est uniquement un secours de développement, pas une étape nécessaire pour les utilisateurs.
 
 ## Une seule fois dans Firebase
 
@@ -21,9 +21,9 @@ Un navigateur ne peut pas démarrer un serveur HTTP depuis un simple `file://` (
 
 ## Fonctionnement et quota Spark
 
-- La liste d’espaces est récupérée depuis un seul index à la connexion ; Nova ne relit pas chaque espace et chaque rôle séparément, et elle n’a pas de listener permanent.
+- La liste d’espaces est récupérée depuis un seul index à la connexion ; Sōlo ne relit pas chaque espace et chaque rôle séparément, et elle n’a pas de listener permanent.
 - Les données personnelles utilisent une lecture à la connexion puis une écriture différée après une modification enregistrée. Il n’y a aucune écriture à chaque frappe.
-- Une fois un espace ouvert, Nova garde exactement deux listeners temps réel : ses tâches et ses notes. Changer d’espace ferme les deux précédents.
+- Une fois un espace ouvert, Sōlo garde exactement deux listeners temps réel : ses tâches et ses notes. Changer d’espace ferme les deux précédents.
 - L’historique est chargé uniquement lorsque l’onglet *Historique* est ouvert puis actualisé ; il est limité à 25 évènements.
 - Les notes sont enregistrées par le bouton **Enregistrer**, jamais caractère par caractère.
 - La photo de profil reste sur l’appareil. Les images partagées sont des liens `https://` externes. Aucun fichier ni base64 n’est envoyé dans Firestore.

@@ -83,7 +83,7 @@
         settings: { ...empty.settings, ...(parsed.settings || {}), uiTheme: normalizeTheme(parsed.settings?.uiTheme) }
       };
     } catch (error) {
-      console.warn("Nova: anciennes données illisibles, base locale vierge chargée.", error);
+      console.warn("Sōlo : anciennes données illisibles, base locale vierge chargée.", error);
       return empty;
     }
   }
@@ -125,10 +125,10 @@
   function accountCopy() {
     const account = ui.account || {};
     if (account.status === "signed-in") return {
-      icon: "bi-cloud-check", title: account.displayName || "Compte Nova", text: `${account.email || "Compte connecté"} · objectifs, notes et réglages synchronisés`, action: "Se déconnecter", kind: "signed-in"
+      icon: "bi-cloud-check", title: account.displayName || "Compte Sōlo", text: `${account.email || "Compte connecté"} · objectifs, notes et réglages synchronisés`, action: "Se déconnecter", kind: "signed-in"
     };
     if (account.status === "protocol-blocked") return {
-      icon: "bi-globe2", title: "Version web requise", text: "Ouvre la version en ligne pour activer le compte, la synchronisation et les espaces partagés.", action: "Ouvrir Nova en ligne", kind: "blocked"
+      icon: "bi-globe2", title: "Version web requise", text: "Ouvre la version en ligne pour activer le compte, la synchronisation et les espaces partagés.", action: "Ouvrir Sōlo en ligne", kind: "blocked"
     };
     if (account.status === "unavailable") return {
       icon: "bi-cloud-slash", title: "Service indisponible", text: "Tes données locales restent accessibles. Réessaie quand tu retrouves une connexion.", action: "Réessayer", kind: "blocked"
@@ -337,7 +337,7 @@
         <section class="setting-card panel ${ui.settingsTab === "profile" ? "mobile-active" : ""}" data-setting-panel="profile"><div class="setting-title"><span><i class="bi bi-person"></i></span><div><h2>Ton profil</h2><p>Utilisé aussi dans les espaces partagés.</p></div></div><div class="profile-fields"><div class="avatar-preview">${state.profile.avatar ? `<img src="${esc(state.profile.avatar)}" alt="">` : '<i class="bi bi-person"></i>'}</div><label>Nom affiché<input id="profileName" value="${esc(state.profile.name)}" placeholder="Ton prénom ou pseudo"></label></div><label class="secondary file-button"><i class="bi bi-image"></i> Choisir une photo<input id="profileAvatar" type="file" accept="image/*"></label><button class="primary" id="saveProfile">Enregistrer le profil</button></section>
          <section class="setting-card panel ${ui.settingsTab === "appearance" ? "mobile-active" : ""}" data-setting-panel="appearance"><div class="setting-title"><span><i class="bi bi-palette"></i></span><div><h2>Apparence</h2><p>Des ambiances complètes, chacune en version claire ou sombre.</p></div></div><div class="theme-choice">${THEMES.map(theme => `<button type="button" data-theme-choice="${theme.id}" class="${activeTheme === theme.id ? "active" : ""}"><i class="theme-demo ${theme.demo}"></i><span><strong>${theme.label}</strong><small>${theme.description}</small></span></button>`).join("")}</div><label class="toggle-row"><span><strong>Listes compactes</strong><small>Affiche davantage d’éléments</small></span><input id="compactLists" type="checkbox" ${state.settings.compactLists ? "checked" : ""}></label></section>
         <section class="setting-card panel ${ui.settingsTab === "help" ? "mobile-active" : ""}" data-setting-panel="help"><div class="setting-title"><span><i class="bi bi-compass"></i></span><div><h2>Aide</h2><p>Le tutoriel ne s’affiche automatiquement qu’une fois.</p></div></div><button class="secondary full" id="replayTutorial"><i class="bi bi-play-circle"></i> Revoir le mini tutoriel</button><button class="secondary full" id="openSearchSettings"><i class="bi bi-search"></i> Rechercher une fonction</button></section>
-        <section class="setting-card panel ${ui.settingsTab === "data" ? "mobile-active" : ""}" data-setting-panel="data"><div class="setting-title"><span><i class="bi bi-database"></i></span><div><h2>Données locales</h2><p>Compatible avec les sauvegardes Nova précédentes.</p></div></div><div class="data-actions"><button class="secondary" id="exportData"><i class="bi bi-download"></i> Exporter</button><label class="secondary file-button"><i class="bi bi-upload"></i> Importer<input id="importData" type="file" accept=".json,application/json"></label></div><button class="danger-button full" id="resetData"><i class="bi bi-trash3"></i> Réinitialiser les données locales</button></section>
+        <section class="setting-card panel ${ui.settingsTab === "data" ? "mobile-active" : ""}" data-setting-panel="data"><div class="setting-title"><span><i class="bi bi-database"></i></span><div><h2>Données locales</h2><p>Compatible avec les sauvegardes Sōlo précédentes.</p></div></div><div class="data-actions"><button class="secondary" id="exportData"><i class="bi bi-download"></i> Exporter</button><label class="secondary file-button"><i class="bi bi-upload"></i> Importer<input id="importData" type="file" accept=".json,application/json"></label></div><button class="danger-button full" id="resetData"><i class="bi bi-trash3"></i> Réinitialiser les données locales</button></section>
       </div>
     </div>`;
     root.querySelectorAll("[data-settings-tab]").forEach(button => button.onclick = () => { ui.settingsTab = button.dataset.settingsTab; renderProfile(); });
@@ -520,7 +520,7 @@
         if (!await confirmAction("Importer cette sauvegarde ?", "Les données locales actuelles seront remplacées. Les espaces partagés ne changent pas.")) return;
         parsed.syncUpdatedAt = Date.now();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed)); location.reload();
-      } catch { toast("Ce fichier n’est pas une sauvegarde Nova valide."); }
+      } catch { toast("Ce fichier n’est pas une sauvegarde Sōlo valide."); }
     };
     reader.readAsText(file);
   }

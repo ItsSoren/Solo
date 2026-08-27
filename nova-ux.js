@@ -1,9 +1,9 @@
 (() => {
   const TUTORIAL_KEY = "nova_tasks_tutorial_v9_seen";
   const steps = [
-    { icon: "bi-house-heart", eyebrow: "1 sur 3 · AUJOURD’HUI", title: "L’essentiel, dès l’ouverture.", text: "Nova te montre le prochain objectif, les échéances proches et tes notes rapides sans surcharger l’écran." },
+    { icon: "bi-house-heart", eyebrow: "1 sur 3 · AUJOURD’HUI", title: "L’essentiel, dès l’ouverture.", text: "Sōlo te montre le prochain objectif, les échéances proches et tes notes rapides sans surcharger l’écran." },
     { icon: "bi-check2-square", eyebrow: "2 sur 3 · OBJECTIFS & NOTES", title: "Écris vite, organise ensuite.", text: "Crée un objectif simple ou ouvre une note en plein écran pour ajouter titres, listes, liens et cases à cocher." },
-    { icon: "bi-people", eyebrow: "3 sur 3 · COMPTE & PARTAGE", title: "Local ou synchronisé, à toi de choisir.", text: "Nova fonctionne sans compte. Connecte-toi pour retrouver tes données personnelles et collaborer dans des espaces privés." }
+    { icon: "bi-people", eyebrow: "3 sur 3 · COMPTE & PARTAGE", title: "Local ou synchronisé, à toi de choisir.", text: "Sōlo fonctionne sans compte. Connecte-toi pour retrouver tes données personnelles et collaborer dans des espaces privés." }
   ];
   let index = 0;
 

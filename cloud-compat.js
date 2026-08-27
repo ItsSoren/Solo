@@ -148,7 +148,7 @@ async function syncPersonalOnLogin() {
   const remote = userSnapshot.exists() ? userSnapshot.data().personalState : null;
   if (remote && Number(remote.updatedAt || 0) > Number(local.updatedAt || 0)) {
     nova.applyPersonalSnapshot(remote);
-    nova.toast?.("Tes données Nova ont été retrouvées.");
+    nova.toast?.("Tes données Sōlo ont été retrouvées.");
   } else if (!remote || Number(local.updatedAt || 0) > Number(remote.updatedAt || 0)) {
     await writePersonalState();
   }
@@ -168,7 +168,7 @@ function openAccount(mode = "login") {
   const dialog = document.getElementById("accountDialog");
   if (!dialog) return;
   const loginMode = mode !== "register";
-  dialog.innerHTML = `<div class="account-modal"><button type="button" class="icon-btn account-close" aria-label="Fermer"><i class="bi bi-x-lg"></i></button><div class="nova-mini"><img src="assets/nova-mark-opal.png" alt=""><strong>Compte ToDoMore</strong></div><span class="eyebrow">SAUVEGARDE PERSONNELLE</span><h2>${loginMode ? "Retrouve ton espace." : "Crée ton compte gratuit."}</h2><p>Un seul compte pour tes objectifs, tes notes, tes réglages et tes espaces partagés.</p><form id="globalAuthForm" class="nova-form">${loginMode ? "" : '<label>Nom affiché<input name="name" maxlength="40" autocomplete="name" placeholder="Ton prénom ou pseudo"></label>'}<label>E-mail<input name="email" type="email" required autocomplete="email"></label><label>Mot de passe<input name="password" type="password" required minlength="6" autocomplete="${loginMode ? "current-password" : "new-password"}"></label><p id="accountFormError" class="account-form-error" role="alert"></p><button type="button" class="password-reset">Mot de passe oublié ?</button><button class="nova-primary wide" type="submit">${loginMode ? "Se connecter" : "Créer mon compte"} <span>→</span></button></form><button type="button" class="auth-mode-switch">${loginMode ? "Pas encore de compte ? Créer mon compte" : "J’ai déjà un compte"}</button><small class="account-local-note"><i class="bi bi-shield-check"></i> Mode gratuit Spark · aucune image envoyée dans Firebase Storage</small></div>`;
+  dialog.innerHTML = `<div class="account-modal"><button type="button" class="icon-btn account-close" aria-label="Fermer"><i class="bi bi-x-lg"></i></button><div class="nova-mini"><img src="assets/solo-mark-opal.png" alt=""><strong>Compte Sōlo</strong></div><span class="eyebrow">SAUVEGARDE PERSONNELLE</span><h2>${loginMode ? "Retrouve ton espace." : "Crée ton compte gratuit."}</h2><p>Un seul compte pour tes objectifs, tes notes, tes réglages et tes espaces partagés.</p><form id="globalAuthForm" class="nova-form">${loginMode ? "" : '<label>Nom affiché<input name="name" maxlength="40" autocomplete="name" placeholder="Ton prénom ou pseudo"></label>'}<label>E-mail<input name="email" type="email" required autocomplete="email"></label><label>Mot de passe<input name="password" type="password" required minlength="6" autocomplete="${loginMode ? "current-password" : "new-password"}"></label><p id="accountFormError" class="account-form-error" role="alert"></p><button type="button" class="password-reset">Mot de passe oublié ?</button><button class="nova-primary wide" type="submit">${loginMode ? "Se connecter" : "Créer mon compte"} <span>→</span></button></form><button type="button" class="auth-mode-switch">${loginMode ? "Pas encore de compte ? Créer mon compte" : "J’ai déjà un compte"}</button><small class="account-local-note"><i class="bi bi-shield-check"></i> Mode gratuit Spark · aucune image envoyée dans Firebase Storage</small></div>`;
   dialog.querySelector(".account-close").onclick = () => dialog.close();
   dialog.querySelector(".auth-mode-switch").onclick = () => openAccount(loginMode ? "register" : "login");
   dialog.querySelector(".password-reset").onclick = () => requestPasswordReset(dialog.querySelector("#globalAuthForm"));
@@ -226,8 +226,8 @@ window.addEventListener("nova:shared-create", () => {
 function sharedShell() {
   if (!cloud.user) return `
     <div class="shared-landing nova-enter">
-      <div class="shared-hero"><span class="eyebrow">NOVA COLLAB</span><h2>Organise ce qui compte,<br><em>ensemble.</em></h2><p>Un seul compte pour tes données personnelles et tes espaces privés, avec des rôles clairs et une synchronisation légère.</p><div class="shared-orbs" aria-hidden="true"><i></i><i></i><i></i></div></div>
-      <div class="auth-card glass-panel"><div class="nova-mini"><img src="assets/nova-mark-opal.png" alt=""> <strong>ToDoMore partagé</strong></div><h3>Entrer dans l’espace</h3><p class="muted">Crée un compte gratuit ou connecte-toi.</p>
+      <div class="shared-hero"><span class="eyebrow">SŌLO COLLAB</span><h2>Organise ce qui compte,<br><em>ensemble.</em></h2><p>Un seul compte pour tes données personnelles et tes espaces privés, avec des rôles clairs et une synchronisation légère.</p><div class="shared-orbs" aria-hidden="true"><i></i><i></i><i></i></div></div>
+      <div class="auth-card glass-panel"><div class="nova-mini"><img src="assets/solo-mark-opal.png" alt=""> <strong>Sōlo partagé</strong></div><h3>Entrer dans l’espace</h3><p class="muted">Crée un compte gratuit ou connecte-toi.</p>
         <form id="novaAuthForm" class="nova-form"><label>Pseudo<input name="name" maxlength="40" placeholder="Ton prénom ou pseudo"></label><label>E-mail<input name="email" type="email" required autocomplete="email" placeholder="toi@exemple.fr"></label><label>Mot de passe<input name="password" type="password" required minlength="6" autocomplete="current-password" placeholder="6 caractères minimum"></label><button class="nova-primary" type="submit">Créer mon compte <span>→</span></button></form>
         <p class="auth-switch">Déjà un compte ? <button type="button" data-cloud-action="toggle-login">Se connecter</button></p>
       </div>
@@ -236,18 +236,18 @@ function sharedShell() {
   return `
     <div class="shared-layout nova-enter">
       <aside class="spaces-panel glass-panel">
-        <div class="spaces-head"><div class="nova-mini"><img src="assets/nova-mark-opal.png" alt=""><strong>ToDoMore collaboratif</strong></div><button class="icon-button" title="Se déconnecter" data-cloud-action="signout"><i class="bi bi-box-arrow-right"></i></button></div>
+        <div class="spaces-head"><div class="nova-mini"><img src="assets/solo-mark-opal.png" alt=""><strong>Sōlo collaboratif</strong></div><button class="icon-button" title="Se déconnecter" data-cloud-action="signout"><i class="bi bi-box-arrow-right"></i></button></div>
         <button type="button" class="nova-primary wide" data-cloud-action="open-create"><i class="bi bi-plus-lg"></i> Nouvel espace</button>
         <button type="button" class="nova-secondary wide" data-cloud-action="open-join"><i class="bi bi-link-45deg"></i> Rejoindre avec un code</button>
         <div class="spaces-list"><span class="list-label">TES ESPACES</span>${cloud.workspaces.length ? cloud.workspaces.map(space => `<button class="space-item ${cloud.active?.id === space.id ? "active" : ""}" data-space-id="${space.id}"><span class="space-icon ${esc(space.color || "violet")}">${ICONS[space.color] || "✦"}</span><span><strong>${esc(space.title)}</strong><small>${ROLES[space.role]}</small></span></button>`).join("") : `<p class="empty-side">Ton premier espace partagé commence ici.</p>`}</div>
-        <div class="account-chip"><span>${esc((cloud.user.displayName || cloud.user.email || "N").slice(0, 1).toUpperCase())}</span><div><strong>${esc(cloud.user.displayName || "Membre ToDoMore")}</strong><small>${esc(cloud.user.email || "")}</small></div></div>
+        <div class="account-chip"><span>${esc((cloud.user.displayName || cloud.user.email || "S").slice(0, 1).toUpperCase())}</span><div><strong>${esc(cloud.user.displayName || "Membre Sōlo")}</strong><small>${esc(cloud.user.email || "")}</small></div></div>
       </aside>
       <div class="shared-work" data-space-color="${esc(cloud.active?.color || "violet")}">${cloud.active ? workspaceView() : emptyWorkspace()}</div>
     </div>`;
 }
 
 function emptyWorkspace() {
-  return `<div class="shared-empty"><img src="assets/nova-mark-opal.png" alt=""><h2>Un espace pour chaque élan.</h2><p>Crée un espace pour ton équipe, ta classe ou ton projet, puis partage un lien d’invitation.</p><div class="shared-empty-actions"><button type="button" class="nova-primary" data-cloud-action="open-create">Créer un espace <span>→</span></button><button type="button" class="nova-secondary" data-cloud-action="open-join"><i class="bi bi-link-45deg"></i> Rejoindre avec un code</button></div></div>${cloud.panel ? panelView() : ""}`;
+  return `<div class="shared-empty"><img src="assets/solo-mark-opal.png" alt=""><h2>Un espace pour chaque élan.</h2><p>Crée un espace pour ton équipe, ta classe ou ton projet, puis partage un lien d’invitation.</p><div class="shared-empty-actions"><button type="button" class="nova-primary" data-cloud-action="open-create">Créer un espace <span>→</span></button><button type="button" class="nova-secondary" data-cloud-action="open-join"><i class="bi bi-link-45deg"></i> Rejoindre avec un code</button></div></div>${cloud.panel ? panelView() : ""}`;
 }
 
 function workspaceView() {
@@ -346,7 +346,7 @@ async function action(name) {
 
 function renderLogin() {
   trace("12 connexion affichée");
-  root.innerHTML = `<div class="shared-landing nova-enter"><div class="shared-hero"><span class="eyebrow">TODOMORE COLLAB</span><h2>Bon retour dans<br><em>la constellation.</em></h2><p>Retrouve tes objectifs, tes notes, tes réglages et les espaces que tu partages.</p><div class="shared-orbs" aria-hidden="true"><i></i><i></i><i></i></div></div><div class="auth-card glass-panel"><div class="nova-mini"><img src="assets/nova-mark-opal.png" alt=""> <strong>Compte ToDoMore</strong></div><h3>Se connecter</h3><form id="novaLoginForm" class="nova-form"><label>E-mail<input name="email" type="email" required autocomplete="email"></label><label>Mot de passe<input name="password" type="password" required autocomplete="current-password"></label><button type="button" class="password-reset">Mot de passe oublié ?</button><button class="nova-primary" type="submit">Continuer <span>→</span></button></form><p class="auth-switch">Pas encore de compte ? <button type="button" data-cloud-action="back-register">Créer mon compte</button></p></div></div>`;
+  root.innerHTML = `<div class="shared-landing nova-enter"><div class="shared-hero"><span class="eyebrow">SŌLO COLLAB</span><h2>Bon retour dans<br><em>la constellation.</em></h2><p>Retrouve tes objectifs, tes notes, tes réglages et les espaces que tu partages.</p><div class="shared-orbs" aria-hidden="true"><i></i><i></i><i></i></div></div><div class="auth-card glass-panel"><div class="nova-mini"><img src="assets/solo-mark-opal.png" alt=""> <strong>Compte Sōlo</strong></div><h3>Se connecter</h3><form id="novaLoginForm" class="nova-form"><label>E-mail<input name="email" type="email" required autocomplete="email"></label><label>Mot de passe<input name="password" type="password" required autocomplete="current-password"></label><button type="button" class="password-reset">Mot de passe oublié ?</button><button class="nova-primary" type="submit">Continuer <span>→</span></button></form><p class="auth-switch">Pas encore de compte ? <button type="button" data-cloud-action="back-register">Créer mon compte</button></p></div></div>`;
   root.querySelector("#novaLoginForm").addEventListener("submit", login);
   root.querySelector(".password-reset").onclick = () => requestPasswordReset(root.querySelector("#novaLoginForm"));
   root.querySelector("[data-cloud-action='back-register']").onclick = () => { cloud.panel = null; render(); };
@@ -354,7 +354,7 @@ function renderLogin() {
 
 async function register(event) {
   event.preventDefault(); const data = new FormData(event.currentTarget); const name = String(data.get("name") || "").trim();
-  try { const credential = await createUserWithEmailAndPassword(auth, data.get("email"), data.get("password")); await updateProfile(credential.user, { displayName: name || "Membre Nova" }); await setDoc(doc(db, "users", credential.user.uid), { displayName: name || "Membre Nova", email: credential.user.email, createdAt: serverTimestamp() }, { merge: true }); }
+  try { const credential = await createUserWithEmailAndPassword(auth, data.get("email"), data.get("password")); await updateProfile(credential.user, { displayName: name || "Membre Sōlo" }); await setDoc(doc(db, "users", credential.user.uid), { displayName: name || "Membre Sōlo", email: credential.user.email, createdAt: serverTimestamp() }, { merge: true }); }
   catch (error) { accountError(error.code === "auth/email-already-in-use" ? "Cette adresse possède déjà un compte. Connecte-toi." : "Impossible de créer le compte : vérifie les informations."); }
 }
 async function login(event) { event.preventDefault(); const data = new FormData(event.currentTarget); try { await signInWithEmailAndPassword(auth, data.get("email"), data.get("password")); } catch { accountError("E-mail ou mot de passe incorrect."); } }
@@ -373,7 +373,7 @@ async function createWorkspace(event) {
     const description = String(data.get("description") || "").trim();
     const batch = writeBatch(db);
     batch.set(workspace, { title, description, color: data.get("color"), ownerId: cloud.user.uid, memberCount: 1, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-    batch.set(member, { uid: cloud.user.uid, role: "admin", displayName: cloud.user.displayName || "Membre Nova", email: cloud.user.email || "", joinedAt: serverTimestamp() });
+    batch.set(member, { uid: cloud.user.uid, role: "admin", displayName: cloud.user.displayName || "Membre Sōlo", email: cloud.user.email || "", joinedAt: serverTimestamp() });
     batch.set(index, { workspaceId: workspace.id, title, description, color: data.get("color"), ownerId: cloud.user.uid, role: "admin", updatedAt: serverTimestamp() });
     trace("14 écriture Firebase", { workspaceId: workspace.id });
     await batch.commit();
@@ -395,7 +395,7 @@ async function joinWorkspace(event) {
     if ((await getDoc(membership)).exists()) { cloud.panel = null; await loadWorkspaces(); flash("Tu fais déjà partie de cet espace."); return; }
     const userIndex = doc(db, "users", cloud.user.uid, "workspaces", info.workspaceId);
     const batch = writeBatch(db);
-    batch.set(membership, { uid: cloud.user.uid, role: info.role, displayName: cloud.user.displayName || "Membre Nova", email: cloud.user.email || "", inviteCode: code, joinedAt: serverTimestamp() });
+    batch.set(membership, { uid: cloud.user.uid, role: info.role, displayName: cloud.user.displayName || "Membre Sōlo", email: cloud.user.email || "", inviteCode: code, joinedAt: serverTimestamp() });
     batch.set(userIndex, { workspaceId: info.workspaceId, title: info.workspaceTitle || "Espace partagé", color: info.workspaceColor || "violet", role: info.role, updatedAt: serverTimestamp() });
     trace("15 écriture membre", { workspaceId: info.workspaceId });
     await batch.commit();
@@ -431,21 +431,21 @@ async function copyInvite() { if (!cloud.active) return; if (!isAdmin()) return 
 async function copyText(value) { if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(value); const input = document.createElement("textarea"); input.value = value; document.body.append(input); input.select(); document.execCommand("copy"); input.remove(); }
 
 async function saveTask(event) {
-  event.preventDefault(); const data = new FormData(event.currentTarget); const editing = cloud.editingTask; const body = { title: String(data.get("title")).trim(), description: String(data.get("description") || "").trim(), priority: Number(data.get("priority")), dueDate: String(data.get("dueDate") || ""), updatedAt: serverTimestamp(), updatedBy: cloud.user.uid, updatedByName: cloud.user.displayName || "Membre Nova" };
-  try { if (editing?.id) { await updateDoc(doc(db, "workspaces", cloud.active.id, "tasks", editing.id), body); if (editing.status !== "done" && body.status === "done") await record("task-done", `a terminé « ${body.title} »`); } else { await addDoc(activeRef("tasks"), { ...body, status: "open", createdBy: cloud.user.uid, createdByName: cloud.user.displayName || "Membre Nova", createdAt: serverTimestamp() }); await record("task-created", `a ajouté « ${body.title} »`); } cloud.panel = null; cloud.editingTask = null; render(); }
+  event.preventDefault(); const data = new FormData(event.currentTarget); const editing = cloud.editingTask; const body = { title: String(data.get("title")).trim(), description: String(data.get("description") || "").trim(), priority: Number(data.get("priority")), dueDate: String(data.get("dueDate") || ""), updatedAt: serverTimestamp(), updatedBy: cloud.user.uid, updatedByName: cloud.user.displayName || "Membre Sōlo" };
+  try { if (editing?.id) { await updateDoc(doc(db, "workspaces", cloud.active.id, "tasks", editing.id), body); if (editing.status !== "done" && body.status === "done") await record("task-done", `a terminé « ${body.title} »`); } else { await addDoc(activeRef("tasks"), { ...body, status: "open", createdBy: cloud.user.uid, createdByName: cloud.user.displayName || "Membre Sōlo", createdAt: serverTimestamp() }); await record("task-created", `a ajouté « ${body.title} »`); } cloud.panel = null; cloud.editingTask = null; render(); }
   catch (error) { friendlyError(error); }
 }
 
 async function toggleTask(id) {
   if (!canEdit()) return; const task = cloud.tasks.find(item => item.id === id); if (!task) return; const status = task.status === "done" ? "open" : "done";
-  try { await updateDoc(doc(db, "workspaces", cloud.active.id, "tasks", id), { status, updatedAt: serverTimestamp(), updatedBy: cloud.user.uid, updatedByName: cloud.user.displayName || "Membre Nova" }); if (status === "done") await record("task-done", `a terminé « ${task.title} »`); }
+  try { await updateDoc(doc(db, "workspaces", cloud.active.id, "tasks", id), { status, updatedAt: serverTimestamp(), updatedBy: cloud.user.uid, updatedByName: cloud.user.displayName || "Membre Sōlo" }); if (status === "done") await record("task-done", `a terminé « ${task.title} »`); }
   catch (error) { friendlyError(error); }
 }
 async function deleteTask(id) { const task = cloud.tasks.find(item => item.id === id); if (!task || !confirm(`Supprimer « ${task.title} » ?`)) return; try { await deleteDoc(doc(db, "workspaces", cloud.active.id, "tasks", id)); } catch (error) { friendlyError(error); } }
 
 async function saveNote(event) {
-  event.preventDefault(); const data = new FormData(event.currentTarget); const editing = cloud.editingNote; const url = String(data.get("linkUrl") || "").trim(); const body = { title: String(data.get("title")).trim(), content: String(data.get("content")).trim(), linkUrl: /^https?:\/\//i.test(url) ? url : "", updatedAt: serverTimestamp(), updatedBy: cloud.user.uid, updatedByName: cloud.user.displayName || "Membre Nova" };
-  try { if (editing?.id) await updateDoc(doc(db, "workspaces", cloud.active.id, "notes", editing.id), body); else await addDoc(activeRef("notes"), { ...body, createdBy: cloud.user.uid, createdByName: cloud.user.displayName || "Membre Nova", createdAt: serverTimestamp() }); await record("note-saved", `a sauvegardé « ${body.title} »`); cloud.panel = null; cloud.editingNote = null; render(); }
+  event.preventDefault(); const data = new FormData(event.currentTarget); const editing = cloud.editingNote; const url = String(data.get("linkUrl") || "").trim(); const body = { title: String(data.get("title")).trim(), content: String(data.get("content")).trim(), linkUrl: /^https?:\/\//i.test(url) ? url : "", updatedAt: serverTimestamp(), updatedBy: cloud.user.uid, updatedByName: cloud.user.displayName || "Membre Sōlo" };
+  try { if (editing?.id) await updateDoc(doc(db, "workspaces", cloud.active.id, "notes", editing.id), body); else await addDoc(activeRef("notes"), { ...body, createdBy: cloud.user.uid, createdByName: cloud.user.displayName || "Membre Sōlo", createdAt: serverTimestamp() }); await record("note-saved", `a sauvegardé « ${body.title} »`); cloud.panel = null; cloud.editingNote = null; render(); }
   catch (error) { friendlyError(error); }
 }
 
@@ -461,10 +461,10 @@ function openSharedNote(note = null) {
     format: note?.format || "markdown",
     color: note?.color || "opal",
     onSave: async value => {
-      const body = { ...value, linkUrl: note?.linkUrl || "", updatedAt: serverTimestamp(), updatedBy: cloud.user.uid, updatedByName: cloud.user.displayName || "Membre Nova" };
+      const body = { ...value, linkUrl: note?.linkUrl || "", updatedAt: serverTimestamp(), updatedBy: cloud.user.uid, updatedByName: cloud.user.displayName || "Membre Sōlo" };
       try {
         if (note?.id) await updateDoc(doc(db, "workspaces", cloud.active.id, "notes", note.id), body);
-        else await addDoc(activeRef("notes"), { ...body, createdBy: cloud.user.uid, createdByName: cloud.user.displayName || "Membre Nova", createdAt: serverTimestamp() });
+        else await addDoc(activeRef("notes"), { ...body, createdBy: cloud.user.uid, createdByName: cloud.user.displayName || "Membre Sōlo", createdAt: serverTimestamp() });
         await record("note-saved", `a sauvegardé « ${body.title} »`);
         render();
       } catch (error) {
@@ -476,7 +476,7 @@ function openSharedNote(note = null) {
 }
 
 async function selectWorkspace(id) { const selected = cloud.workspaces.find(space => space.id === id); if (!selected) return; cloud.panel = null; if (cloud.active?.id === id) return render(); cloud.active = selected; cloud.tasks = []; cloud.notes = []; cloud.activity = []; cloud.tab = "tasks"; subscribeWorkspace(); render(); }
-async function loadMembers() { const mount = root.querySelector("#membersMount"); if (!mount || !cloud.active) return; try { if (!cloud.active.ownerId && isAdmin()) { const workspace = await getDoc(doc(db, "workspaces", cloud.active.id)); if (workspace.exists()) cloud.active.ownerId = workspace.data().ownerId || ""; } const members = await getDocs(query(activeRef("members"), orderBy("joinedAt", "asc"), limit(50))); if (!root.querySelector("#membersMount")) return; mount.innerHTML = members.docs.map(item => { const member = { id: item.id, ...item.data() }; return `<article class="member-row"><span class="member-avatar">${esc((member.displayName || member.email || "N")[0].toUpperCase())}</span><div><strong>${esc(member.displayName || "Membre Nova")}</strong><small>${esc(member.email || "")} · arrivé ${dateText(member.joinedAt)}</small></div><div class="member-role">${isAdmin() && member.uid !== cloud.active.ownerId ? `<select data-member-role="${member.id}">${Object.entries(ROLES).map(([key, label]) => `<option value="${key}" ${member.role === key ? "selected" : ""}>${label}</option>`).join("")}</select><button class="icon-button danger-icon" data-member-remove="${member.id}" title="Retirer"><i class="bi bi-person-dash"></i></button>` : `<span>${ROLES[member.role]}</span>`}</div></article>`; }).join(""); mount.querySelectorAll("[data-member-role]").forEach(select => select.onchange = () => changeRole(select.dataset.memberRole, select.value)); mount.querySelectorAll("[data-member-remove]").forEach(button => button.onclick = () => removeMember(button.dataset.memberRemove)); } catch (error) { mount.innerHTML = `<p class="muted">Impossible de charger les membres.</p>`; console.error(error); } }
+async function loadMembers() { const mount = root.querySelector("#membersMount"); if (!mount || !cloud.active) return; try { if (!cloud.active.ownerId && isAdmin()) { const workspace = await getDoc(doc(db, "workspaces", cloud.active.id)); if (workspace.exists()) cloud.active.ownerId = workspace.data().ownerId || ""; } const members = await getDocs(query(activeRef("members"), orderBy("joinedAt", "asc"), limit(50))); if (!root.querySelector("#membersMount")) return; mount.innerHTML = members.docs.map(item => { const member = { id: item.id, ...item.data() }; return `<article class="member-row"><span class="member-avatar">${esc((member.displayName || member.email || "S")[0].toUpperCase())}</span><div><strong>${esc(member.displayName || "Membre Sōlo")}</strong><small>${esc(member.email || "")} · arrivé ${dateText(member.joinedAt)}</small></div><div class="member-role">${isAdmin() && member.uid !== cloud.active.ownerId ? `<select data-member-role="${member.id}">${Object.entries(ROLES).map(([key, label]) => `<option value="${key}" ${member.role === key ? "selected" : ""}>${label}</option>`).join("")}</select><button class="icon-button danger-icon" data-member-remove="${member.id}" title="Retirer"><i class="bi bi-person-dash"></i></button>` : `<span>${ROLES[member.role]}</span>`}</div></article>`; }).join(""); mount.querySelectorAll("[data-member-role]").forEach(select => select.onchange = () => changeRole(select.dataset.memberRole, select.value)); mount.querySelectorAll("[data-member-remove]").forEach(button => button.onclick = () => removeMember(button.dataset.memberRemove)); } catch (error) { mount.innerHTML = `<p class="muted">Impossible de charger les membres.</p>`; console.error(error); } }
 async function changeRole(userId, role) { try { const batch = writeBatch(db); batch.update(doc(db, "workspaces", cloud.active.id, "members", userId), { role }); batch.set(doc(db, "users", userId, "workspaces", cloud.active.id), { role, updatedAt: serverTimestamp() }, { merge: true }); await batch.commit(); await record("member", "a modifié un rôle membre"); loadMembers(); } catch (error) { friendlyError(error); } }
 async function removeMember(userId) { if (!confirm("Retirer cette personne de l’espace ?")) return; try { const batch = writeBatch(db); batch.delete(doc(db, "workspaces", cloud.active.id, "members", userId)); batch.delete(doc(db, "users", userId, "workspaces", cloud.active.id)); await batch.commit(); await record("member", "a retiré un membre"); loadMembers(); } catch (error) { friendlyError(error); } }
 async function loadActivity() { if (!cloud.active) return; try { const items = await getDocs(query(activeRef("activity"), orderBy("createdAt", "desc"), limit(25))); cloud.activity = items.docs.map(item => ({ id: item.id, ...item.data() })); render(); } catch (error) { friendlyError(error); } }
@@ -490,7 +490,7 @@ onAuthStateChanged(auth, async (user) => {
   if (user) {
     document.getElementById("accountDialog")?.close();
     try {
-      await setDoc(doc(db, "users", user.uid), { displayName: user.displayName || "Membre Nova", email: user.email || "", lastSeenAt: serverTimestamp() }, { merge: true });
+      await setDoc(doc(db, "users", user.uid), { displayName: user.displayName || "Membre Sōlo", email: user.email || "", lastSeenAt: serverTimestamp() }, { merge: true });
       await syncPersonalOnLogin();
       await loadWorkspaces();
       if (cloud.pendingInvite) cloud.panel = "join";
