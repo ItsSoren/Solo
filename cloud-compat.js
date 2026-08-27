@@ -53,7 +53,7 @@ document.addEventListener("click", event => {
 
 const cloud = {
   user: null, workspaces: [], active: null, tasks: [], notes: [], activity: [],
-  tab: "tasks", panel: null, busy: false, notice: "", pendingInvite: new URLSearchParams(location.search).get("invite")?.toUpperCase() || "",
+  tab: "tasks", panel: null, busy: false, syncReady: false, notice: "", pendingInvite: new URLSearchParams(location.search).get("invite")?.toUpperCase() || "",
   unsubs: []
 };
 
@@ -127,8 +127,49 @@ function waitForNovaApp() {
   return new Promise(resolve => window.addEventListener("DOMContentLoaded", () => resolve(window.NovaApp), { once: true }));
 }
 
-async function writePersonalState() {
-  if (!cloud.user) return;
+function hasPersonalData(snapshot = {}) {
+  return Boolean((snapshot.tasks || []).length || (snapshot.notes || []).length || (snapshot.tags || []).length || snapshot.profile?.name);
+}
+
+function mergeCollection(localItems = [], remoteItems = []) {
+  const merged = new Map(remoteItems.map(item => [item.id, item]));
+  localItems.forEach(item => {
+    const previous = merged.get(item.id);
+    if (!previous || Number(item.updatedAt || item.createdAt || 0) >= Number(previous.updatedAt || previous.createdAt || 0)) merged.set(item.id, item);
+  });
+  return [...merged.values()];
+}
+
+function mergePersonalSnapshots(local = {}, remote = {}) {
+  return {
+    version: 1,
+    updatedAt: Date.now(),
+    tasks: mergeCollection(local.tasks, remote.tasks),
+    notes: mergeCollection(local.notes, remote.notes),
+    tags: [...new Set([...(remote.tags || []), ...(local.tags || [])])],
+    profile: { ...(remote.profile || {}), ...(local.profile?.name ? local.profile : {}) },
+    settings: { ...(remote.settings || {}), ...(local.settings || {}) }
+  };
+}
+
+function askSyncChoice(local, remote) {
+  return new Promise(resolve => {
+    const dialog = document.getElementById("accountDialog");
+    if (!dialog) return resolve("merge");
+    const localCount = (local.tasks || []).length + (local.notes || []).length;
+    const remoteCount = (remote.tasks || []).length + (remote.notes || []).length;
+    dialog.innerHTML = `<div class="account-modal sync-conflict-modal"><button type="button" class="icon-btn account-close" aria-label="Décider plus tard"><i class="bi bi-x-lg"></i></button><div class="nova-mini"><img src="assets/solo-mark-opal.png" alt=""><strong>Synchroniser Sōlo</strong></div><span class="eyebrow">DONNÉES DÉTECTÉES</span><h2>Tu as déjà des informations ici.</h2><p>Ce compte contient aussi des données. Choisis ce que tu veux garder avant de synchroniser.</p><div class="sync-compare"><div><strong>${localCount}</strong><span>sur cet appareil</span></div><i class="bi bi-arrow-left-right"></i><div><strong>${remoteCount}</strong><span>dans le compte</span></div></div><div class="sync-choice-list"><button type="button" class="primary wide" data-sync-choice="merge"><i class="bi bi-intersect"></i><span><strong>Fusionner les deux</strong><small>Conserver les objectifs et notes des deux côtés.</small></span></button><button type="button" class="secondary wide" data-sync-choice="remote"><i class="bi bi-cloud-download"></i><span><strong>Prendre les données du compte</strong><small>Remplacer les données locales sur cet appareil.</small></span></button><button type="button" class="secondary wide" data-sync-choice="local"><i class="bi bi-phone"></i><span><strong>Garder cet appareil</strong><small>Envoyer ses données locales vers le compte.</small></span></button></div><button type="button" class="auth-mode-switch" data-sync-choice="later">Décider plus tard</button></div>`;
+    let settled = false;
+    const finish = choice => { if (settled) return; settled = true; dialog.close(); resolve(choice); };
+    dialog.querySelectorAll("[data-sync-choice]").forEach(button => button.onclick = () => finish(button.dataset.syncChoice));
+    dialog.querySelector(".account-close").onclick = () => finish("later");
+    dialog.addEventListener("close", () => finish("later"), { once: true });
+    if (!dialog.open) dialog.showModal();
+  });
+}
+
+async function writePersonalState({ force = false } = {}) {
+  if (!cloud.user || (!cloud.syncReady && !force)) return;
   const nova = await waitForNovaApp();
   const personalState = nova?.getPersonalSnapshot?.();
   if (!personalState) return;
@@ -141,17 +182,31 @@ async function writePersonalState() {
 
 async function syncPersonalOnLogin() {
   const nova = await waitForNovaApp();
-  if (!nova?.getPersonalSnapshot || !cloud.user) return;
+  if (!nova?.getPersonalSnapshot || !cloud.user) return true;
+  cloud.syncReady = false;
   const userRef = doc(db, "users", cloud.user.uid);
   const userSnapshot = await getDoc(userRef);
   const local = nova.getPersonalSnapshot();
   const remote = userSnapshot.exists() ? userSnapshot.data().personalState : null;
-  if (remote && Number(remote.updatedAt || 0) > Number(local.updatedAt || 0)) {
+  if (remote && hasPersonalData(local) && hasPersonalData(remote)) {
+    const choice = await askSyncChoice(local, remote);
+    if (choice === "later") { nova.toast?.("Synchronisation en attente. Reouvre le choix depuis Profil & réglages."); return false; }
+    if (choice === "remote") { nova.applyPersonalSnapshot(remote); nova.toast?.("Les données du compte ont remplacé celles de cet appareil."); cloud.syncReady = true; return true; }
+    if (choice === "local") { cloud.syncReady = true; await writePersonalState({ force: true }); nova.toast?.("Les données de cet appareil sont maintenant liées au compte."); return true; }
+    const merged = mergePersonalSnapshots(local, remote);
+    nova.applyPersonalSnapshot(merged); cloud.syncReady = true; await writePersonalState({ force: true }); nova.toast?.("Objectifs et notes fusionnés."); return true;
+  }
+  if (remote && hasPersonalData(remote)) {
     nova.applyPersonalSnapshot(remote);
     nova.toast?.("Tes données Sōlo ont été retrouvées.");
-  } else if (!remote || Number(local.updatedAt || 0) > Number(remote.updatedAt || 0)) {
-    await writePersonalState();
+  } else if (hasPersonalData(local)) {
+    cloud.syncReady = true;
+    await writePersonalState({ force: true });
+    nova.toast?.("Tes données locales sont maintenant liées à ton compte.");
+    return true;
   }
+  cloud.syncReady = true;
+  return true;
 }
 
 function emitAuth(status, user = null, message = "") {
@@ -168,13 +223,17 @@ function openAccount(mode = "login") {
   const dialog = document.getElementById("accountDialog");
   if (!dialog) return;
   const loginMode = mode !== "register";
-  dialog.innerHTML = `<div class="account-modal"><button type="button" class="icon-btn account-close" aria-label="Fermer"><i class="bi bi-x-lg"></i></button><div class="nova-mini"><img src="assets/solo-mark-opal.png" alt=""><strong>Compte Sōlo</strong></div><span class="eyebrow">SAUVEGARDE PERSONNELLE</span><h2>${loginMode ? "Retrouve ton espace." : "Crée ton compte gratuit."}</h2><p>Un seul compte pour tes objectifs, tes notes, tes réglages et tes espaces partagés.</p><form id="globalAuthForm" class="nova-form">${loginMode ? "" : '<label>Nom affiché<input name="name" maxlength="40" autocomplete="name" placeholder="Ton prénom ou pseudo"></label>'}<label>E-mail<input name="email" type="email" required autocomplete="email"></label><label>Mot de passe<input name="password" type="password" required minlength="6" autocomplete="${loginMode ? "current-password" : "new-password"}"></label><p id="accountFormError" class="account-form-error" role="alert"></p><button type="button" class="password-reset">Mot de passe oublié ?</button><button class="nova-primary wide" type="submit">${loginMode ? "Se connecter" : "Créer mon compte"} <span>→</span></button></form><button type="button" class="auth-mode-switch">${loginMode ? "Pas encore de compte ? Créer mon compte" : "J’ai déjà un compte"}</button><small class="account-local-note"><i class="bi bi-shield-check"></i> Mode gratuit Spark · aucune image envoyée dans Firebase Storage</small></div>`;
-  dialog.querySelector(".account-close").onclick = () => dialog.close();
+  dialog.innerHTML = `<div class="account-modal"><button type="button" class="icon-btn account-close" aria-label="Fermer"><i class="bi bi-x-lg"></i></button><div class="nova-mini"><img src="assets/solo-mark-opal.png" alt=""><strong>Compte Sōlo</strong></div><span class="eyebrow">SAUVEGARDE PERSONNELLE</span><h2>${loginMode ? "Retrouve ton espace." : "Crée ton compte gratuit."}</h2><p>Un seul compte pour tes objectifs, tes notes, tes réglages et tes espaces partagés.</p><form id="globalAuthForm" class="nova-form">${loginMode ? "" : '<label>Nom affiché<input name="name" maxlength="40" autocomplete="name" placeholder="Ton prénom ou pseudo"></label>'}<label>E-mail<input name="email" type="email" required autocomplete="email"></label><label>Mot de passe<input name="password" type="password" required minlength="6" autocomplete="${loginMode ? "current-password" : "new-password"}"></label><p id="accountFormError" class="account-form-error" role="alert"></p><button type="button" class="password-reset">Mot de passe oublié ?</button><button class="nova-primary wide" type="submit">${loginMode ? "Se connecter" : "Créer mon compte"} <span>→</span></button></form><button type="button" class="auth-mode-switch">${loginMode ? "Pas encore de compte ? Créer mon compte" : "J’ai déjà un compte"}</button><button type="button" class="account-offline-choice">Continuer sans compte</button><small class="account-local-note"><i class="bi bi-shield-check"></i> Mode gratuit Spark · aucune image envoyée dans Firebase Storage</small></div>`;
+  dialog.querySelector(".account-close").onclick = () => { dialog.close(); window.dispatchEvent(new CustomEvent("nova:account-closed")); };
+  dialog.querySelector(".account-offline-choice").onclick = () => { localStorage.setItem("solo_startup_choice_v1", "offline"); dialog.close(); window.dispatchEvent(new CustomEvent("nova:offline-choice")); };
   dialog.querySelector(".auth-mode-switch").onclick = () => openAccount(loginMode ? "register" : "login");
   dialog.querySelector(".password-reset").onclick = () => requestPasswordReset(dialog.querySelector("#globalAuthForm"));
   dialog.querySelector("#globalAuthForm").onsubmit = loginMode ? login : register;
   if (!dialog.open) dialog.showModal();
 }
+
+window.addEventListener("nova:request-auth", event => openAccount(event.detail?.mode || "login"));
+if (window.__soloPendingAuth) { window.__soloPendingAuth = false; window.setTimeout(() => openAccount("login"), 0); }
 
 function accountError(message) {
   const node = document.getElementById("accountFormError");
@@ -193,7 +252,7 @@ async function requestPasswordReset(form) {
   }
 }
 
-window.NovaAccount = { available: true, open: openAccount, signOut: () => auth.signOut(), syncNow: writePersonalState };
+window.NovaAccount = { available: true, open: openAccount, signOut: () => auth.signOut(), syncNow: async () => { await syncPersonalOnLogin(); if (cloud.user) window.dispatchEvent(new CustomEvent("nova:auth-ready", { detail: { status: "signed-in", uid: cloud.user.uid } })); } };
 window.addEventListener("nova:local-change", () => {
   if (!cloud.user) return;
   clearTimeout(writePersonalState.timer);
@@ -491,7 +550,8 @@ onAuthStateChanged(auth, async (user) => {
     document.getElementById("accountDialog")?.close();
     try {
       await setDoc(doc(db, "users", user.uid), { displayName: user.displayName || "Membre Sōlo", email: user.email || "", lastSeenAt: serverTimestamp() }, { merge: true });
-      await syncPersonalOnLogin();
+      const syncReady = await syncPersonalOnLogin();
+      window.dispatchEvent(new CustomEvent(syncReady === false ? "nova:sync-pending" : "nova:auth-ready", { detail: { status: "signed-in", uid: user.uid } }));
       await loadWorkspaces();
       if (cloud.pendingInvite) cloud.panel = "join";
     } catch (error) { friendlyError(error); }

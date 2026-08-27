@@ -89,7 +89,7 @@
   }
 
   const state = loadState();
-  const ui = { section: "home", taskFilter: "open", taskSearch: "", noteSearch: "", settingsTab: "profile", account: { status: "loading" } };
+  const ui = { section: "home", taskFilter: "open", taskSearch: "", noteSearch: "", settingsTab: "profile", account: { status: "loading", syncPending: false } };
   const sections = ["home", "tasks", "notes", "shared", "stats", "profile"];
 
   function save({ notify = true, touch = true } = {}) {
@@ -124,6 +124,9 @@
 
   function accountCopy() {
     const account = ui.account || {};
+    if (account.status === "signed-in" && account.syncPending) return {
+      icon: "bi-arrow-left-right", title: "Synchronisation en attente", text: "Choisis quoi faire de tes données locales et de celles du compte.", action: "Revoir le choix", kind: "local"
+    };
     if (account.status === "signed-in") return {
       icon: "bi-cloud-check", title: account.displayName || "Compte Sōlo", text: `${account.email || "Compte connecté"} · objectifs, notes et réglages synchronisés`, action: "Se déconnecter", kind: "signed-in"
     };
@@ -342,7 +345,8 @@
     </div>`;
     root.querySelectorAll("[data-settings-tab]").forEach(button => button.onclick = () => { ui.settingsTab = button.dataset.settingsTab; renderProfile(); });
     root.querySelector("#accountAction").onclick = () => {
-      if (ui.account.status === "signed-in") window.NovaAccount?.signOut?.();
+      if (ui.account.status === "signed-in" && ui.account.syncPending) window.NovaAccount?.syncNow?.();
+      else if (ui.account.status === "signed-in") window.NovaAccount?.signOut?.();
       else if (ui.account.status === "unavailable") location.reload();
       else if (ui.account.status === "protocol-blocked") window.NovaAccount?.openOnline?.();
       else window.NovaAccount?.open?.("login");
@@ -548,8 +552,16 @@
   }
 
   window.addEventListener("nova:auth-state", event => {
-    ui.account = event.detail || { status: "signed-out" };
+    ui.account = { ...(event.detail || { status: "signed-out" }), syncPending: false };
     updateAccountIndicator();
+    if (ui.section === "profile" && document.getElementById("profileSection")) renderProfile();
+  });
+  window.addEventListener("nova:sync-pending", event => {
+    ui.account = { ...(ui.account || {}), ...(event.detail || {}), status: "signed-in", syncPending: true };
+    if (ui.section === "profile" && document.getElementById("profileSection")) renderProfile();
+  });
+  window.addEventListener("nova:auth-ready", event => {
+    ui.account = { ...(ui.account || {}), ...(event.detail || {}), status: "signed-in", syncPending: false };
     if (ui.section === "profile" && document.getElementById("profileSection")) renderProfile();
   });
 
