@@ -30,7 +30,6 @@ const onAuthStateChanged = (_, callback) => auth.onAuthStateChanged(callback);
 const createUserWithEmailAndPassword = (_, email, password) => auth.createUserWithEmailAndPassword(email, password);
 const signInWithEmailAndPassword = (_, email, password) => auth.signInWithEmailAndPassword(email, password);
 const sendPasswordResetEmail = (_, email) => auth.sendPasswordResetEmail(email);
-const signOut = () => auth.signOut();
 const updateProfile = (user, value) => user.updateProfile(value);
 const root = document.getElementById("sharedSection");
 const debug = (...values) => console.log("[Sōlo shared]", ...values);
@@ -48,7 +47,13 @@ document.addEventListener("click", event => {
   debug("clic détecté", { action: button.dataset.cloudAction, tag: event.target.tagName });
   trace("08 action détectée", { action: button.dataset.cloudAction });
   event.preventDefault();
-  action(button.dataset.cloudAction);
+  // Les actions sont asynchrones (notamment la déconnexion Firebase). Toujours
+  // récupérer les rejets afin qu'un clic ne donne jamais l'impression de ne rien faire.
+  Promise.resolve(action(button.dataset.cloudAction)).catch(error => {
+    console.error("[Sōlo shared] action échouée", error);
+    trace("ERREUR action", { action: button.dataset.cloudAction, code: error?.code || "unknown" });
+    flash("L’action n’a pas pu être terminée. Réessaie.", "error");
+  });
 }, true);
 
 const cloud = {
@@ -252,7 +257,30 @@ async function requestPasswordReset(form) {
   }
 }
 
-window.NovaAccount = { available: true, open: openAccount, signOut: () => auth.signOut(), syncNow: async () => { await syncPersonalOnLogin(); if (cloud.user) window.dispatchEvent(new CustomEvent("nova:auth-ready", { detail: { status: "signed-in", uid: cloud.user.uid } })); } };
+async function signOutUser(source = "shared") {
+  trace("12 déconnexion démarrée", { source, signedIn: Boolean(auth.currentUser) });
+  if (!auth.currentUser) {
+    // Évite de rester bloqué sur un ancien rendu si Firebase a déjà perdu la session.
+    cloud.user = null;
+    cloud.active = null;
+    cloud.workspaces = [];
+    emitAuth("signed-out");
+    render();
+    trace("13 déconnexion déjà effective");
+    return;
+  }
+  try {
+    await auth.signOut();
+    trace("13 déconnexion réussie", { source });
+  } catch (error) {
+    console.error("[Sōlo shared] déconnexion Firebase", error);
+    trace("ERREUR déconnexion", { source, code: error?.code || "unknown" });
+    flash("Impossible de se déconnecter pour le moment.", "error");
+    throw error;
+  }
+}
+
+window.NovaAccount = { available: true, open: openAccount, signOut: () => signOutUser("profile"), syncNow: async () => { await syncPersonalOnLogin(); if (cloud.user) window.dispatchEvent(new CustomEvent("nova:auth-ready", { detail: { status: "signed-in", uid: cloud.user.uid } })); } };
 window.addEventListener("nova:local-change", () => {
   if (!cloud.user) return;
   clearTimeout(writePersonalState.timer);
@@ -391,7 +419,7 @@ async function action(name) {
   debug("action", name);
   trace("11 action exécutée", { action: name });
   if (name === "toggle-login") return renderLogin();
-  if (name === "signout") return signOut(auth);
+  if (name === "signout") return signOutUser("shared");
   if (name === "open-create") { cloud.panel = "create"; return render(); }
   if (name === "open-join") { cloud.panel = "join"; return render(); }
   if (name === "open-spaces") { cloud.panel = "spaces"; return render(); }

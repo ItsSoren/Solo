@@ -35,7 +35,7 @@
     "https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js",
     "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js",
     "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js",
-    "cloud-compat.js?v=9.4.4"
+    "cloud-compat.js?v=9.4.5"
   ];
 
   const load = src => new Promise((resolve, reject) => {
