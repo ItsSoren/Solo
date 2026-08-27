@@ -149,6 +149,24 @@ html[data-theme="ocean-peace-dark"] body{background:radial-gradient(circle at 82
 .mobile-space-actions button{width:100%}
 @media(max-width:720px){.mobile-space-switch{display:inline-grid}}
 
+.password-reset{justify-self:start;padding:2px 0;border:0;background:transparent;color:var(--accent-strong);font-size:.76rem;font-weight:750}
+.password-reset:hover{text-decoration:underline}
+.mobile-space-list .space-item{width:100%}
+
+/* La couleur choisie à la création devient l’accent visuel de l’espace. */
+.shared-work[data-space-color="violet"]{--space-accent:#a47ce5;--space-soft:rgba(164,124,229,.16)}
+.shared-work[data-space-color="mint"]{--space-accent:#27bfae;--space-soft:rgba(39,191,174,.16)}
+.shared-work[data-space-color="ember"]{--space-accent:#ed8a58;--space-soft:rgba(237,138,88,.17)}
+.shared-work[data-space-color="sky"]{--space-accent:#5fa9e8;--space-soft:rgba(95,169,232,.17)}
+.shared-work .workspace-kicker{color:var(--space-accent,var(--accent-strong))}
+.shared-work .workspace-head .space-icon{background:var(--space-soft,var(--accent-soft));color:var(--space-accent,var(--accent-strong))}
+.shared-work .shared-metrics>div:first-child{border-top:2px solid var(--space-accent,var(--accent))}
+.shared-work .shared-tabs button.active{box-shadow:inset 0 -2px 0 var(--space-accent,var(--accent)),0 5px 14px rgba(38,101,113,.09)}
+.space-icon.violet{background:rgba(164,124,229,.16);color:#a47ce5}
+.space-icon.mint{background:rgba(39,191,174,.16);color:#27bfae}
+.space-icon.ember{background:rgba(237,138,88,.17);color:#ed8a58}
+.space-icon.sky{background:rgba(95,169,232,.17);color:#5fa9e8}
+
 /* Le symbole opale reste seul, sans pastille colorée autour. */
 .brand-mark{background:transparent;box-shadow:none;border-radius:0}
 .brand-mark img{width:38px;height:38px;object-fit:contain;filter:drop-shadow(0 8px 14px rgba(88,196,220,.2))}

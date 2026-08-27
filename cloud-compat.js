@@ -29,6 +29,7 @@ const onSnapshot = (ref, callback) => ref.onSnapshot(callback);
 const onAuthStateChanged = (_, callback) => auth.onAuthStateChanged(callback);
 const createUserWithEmailAndPassword = (_, email, password) => auth.createUserWithEmailAndPassword(email, password);
 const signInWithEmailAndPassword = (_, email, password) => auth.signInWithEmailAndPassword(email, password);
+const sendPasswordResetEmail = (_, email) => auth.sendPasswordResetEmail(email);
 const signOut = () => auth.signOut();
 const updateProfile = (user, value) => user.updateProfile(value);
 const root = document.getElementById("sharedSection");
@@ -167,9 +168,10 @@ function openAccount(mode = "login") {
   const dialog = document.getElementById("accountDialog");
   if (!dialog) return;
   const loginMode = mode !== "register";
-  dialog.innerHTML = `<div class="account-modal"><button type="button" class="icon-btn account-close" aria-label="Fermer"><i class="bi bi-x-lg"></i></button><div class="nova-mini"><img src="assets/nova-mark-opal.png" alt=""><strong>Compte Nova</strong></div><span class="eyebrow">SAUVEGARDE PERSONNELLE</span><h2>${loginMode ? "Retrouve ton espace." : "Crée ton compte gratuit."}</h2><p>Un seul compte pour tes objectifs, tes notes, tes réglages et tes espaces partagés.</p><form id="globalAuthForm" class="nova-form">${loginMode ? "" : '<label>Nom affiché<input name="name" maxlength="40" autocomplete="name" placeholder="Ton prénom ou pseudo"></label>'}<label>E-mail<input name="email" type="email" required autocomplete="email"></label><label>Mot de passe<input name="password" type="password" required minlength="6" autocomplete="${loginMode ? "current-password" : "new-password"}"></label><p id="accountFormError" class="account-form-error" role="alert"></p><button class="nova-primary wide" type="submit">${loginMode ? "Se connecter" : "Créer mon compte"} <span>→</span></button></form><button type="button" class="auth-mode-switch">${loginMode ? "Pas encore de compte ? Créer mon compte" : "J’ai déjà un compte"}</button><small class="account-local-note"><i class="bi bi-shield-check"></i> Mode gratuit Spark · aucune image envoyée dans Firebase Storage</small></div>`;
+  dialog.innerHTML = `<div class="account-modal"><button type="button" class="icon-btn account-close" aria-label="Fermer"><i class="bi bi-x-lg"></i></button><div class="nova-mini"><img src="assets/nova-mark-opal.png" alt=""><strong>Compte ToDoMore</strong></div><span class="eyebrow">SAUVEGARDE PERSONNELLE</span><h2>${loginMode ? "Retrouve ton espace." : "Crée ton compte gratuit."}</h2><p>Un seul compte pour tes objectifs, tes notes, tes réglages et tes espaces partagés.</p><form id="globalAuthForm" class="nova-form">${loginMode ? "" : '<label>Nom affiché<input name="name" maxlength="40" autocomplete="name" placeholder="Ton prénom ou pseudo"></label>'}<label>E-mail<input name="email" type="email" required autocomplete="email"></label><label>Mot de passe<input name="password" type="password" required minlength="6" autocomplete="${loginMode ? "current-password" : "new-password"}"></label><p id="accountFormError" class="account-form-error" role="alert"></p><button type="button" class="password-reset">Mot de passe oublié ?</button><button class="nova-primary wide" type="submit">${loginMode ? "Se connecter" : "Créer mon compte"} <span>→</span></button></form><button type="button" class="auth-mode-switch">${loginMode ? "Pas encore de compte ? Créer mon compte" : "J’ai déjà un compte"}</button><small class="account-local-note"><i class="bi bi-shield-check"></i> Mode gratuit Spark · aucune image envoyée dans Firebase Storage</small></div>`;
   dialog.querySelector(".account-close").onclick = () => dialog.close();
   dialog.querySelector(".auth-mode-switch").onclick = () => openAccount(loginMode ? "register" : "login");
+  dialog.querySelector(".password-reset").onclick = () => requestPasswordReset(dialog.querySelector("#globalAuthForm"));
   dialog.querySelector("#globalAuthForm").onsubmit = loginMode ? login : register;
   if (!dialog.open) dialog.showModal();
 }
@@ -178,6 +180,17 @@ function accountError(message) {
   const node = document.getElementById("accountFormError");
   if (node) node.textContent = message;
   else flash(message, "error");
+}
+
+async function requestPasswordReset(form) {
+  const email = String(form?.querySelector("input[name='email']")?.value || "").trim();
+  if (!email) return accountError("Saisis d’abord ton adresse e-mail.");
+  try {
+    await sendPasswordResetEmail(auth, email);
+    accountError("Un lien de réinitialisation vient d’être envoyé à cette adresse.");
+  } catch (error) {
+    accountError(error.code === "auth/user-not-found" ? "Aucun compte ne correspond à cette adresse." : "Impossible d’envoyer le lien pour le moment.");
+  }
 }
 
 window.NovaAccount = { available: true, open: openAccount, signOut: () => auth.signOut(), syncNow: writePersonalState };
@@ -204,7 +217,7 @@ function sharedShell() {
   if (!cloud.user) return `
     <div class="shared-landing nova-enter">
       <div class="shared-hero"><span class="eyebrow">NOVA COLLAB</span><h2>Organise ce qui compte,<br><em>ensemble.</em></h2><p>Un seul compte pour tes données personnelles et tes espaces privés, avec des rôles clairs et une synchronisation légère.</p><div class="shared-orbs" aria-hidden="true"><i></i><i></i><i></i></div></div>
-      <div class="auth-card glass-panel"><div class="nova-mini"><img src="assets/nova-mark-opal.png" alt=""> <strong>Nova partagé</strong></div><h3>Entrer dans l’espace</h3><p class="muted">Crée un compte gratuit ou connecte-toi.</p>
+      <div class="auth-card glass-panel"><div class="nova-mini"><img src="assets/nova-mark-opal.png" alt=""> <strong>ToDoMore partagé</strong></div><h3>Entrer dans l’espace</h3><p class="muted">Crée un compte gratuit ou connecte-toi.</p>
         <form id="novaAuthForm" class="nova-form"><label>Pseudo<input name="name" maxlength="40" placeholder="Ton prénom ou pseudo"></label><label>E-mail<input name="email" type="email" required autocomplete="email" placeholder="toi@exemple.fr"></label><label>Mot de passe<input name="password" type="password" required minlength="6" autocomplete="current-password" placeholder="6 caractères minimum"></label><button class="nova-primary" type="submit">Créer mon compte <span>→</span></button></form>
         <p class="auth-switch">Déjà un compte ? <button type="button" data-cloud-action="toggle-login">Se connecter</button></p>
       </div>
@@ -213,13 +226,13 @@ function sharedShell() {
   return `
     <div class="shared-layout nova-enter">
       <aside class="spaces-panel glass-panel">
-        <div class="spaces-head"><div class="nova-mini"><img src="assets/nova-mark-opal.png" alt=""><strong>Nova collaboratif</strong></div><button class="icon-button" title="Se déconnecter" data-cloud-action="signout"><i class="bi bi-box-arrow-right"></i></button></div>
+        <div class="spaces-head"><div class="nova-mini"><img src="assets/nova-mark-opal.png" alt=""><strong>ToDoMore collaboratif</strong></div><button class="icon-button" title="Se déconnecter" data-cloud-action="signout"><i class="bi bi-box-arrow-right"></i></button></div>
         <button type="button" class="nova-primary wide" data-cloud-action="open-create"><i class="bi bi-plus-lg"></i> Nouvel espace</button>
         <button type="button" class="nova-secondary wide" data-cloud-action="open-join"><i class="bi bi-link-45deg"></i> Rejoindre avec un code</button>
         <div class="spaces-list"><span class="list-label">TES ESPACES</span>${cloud.workspaces.length ? cloud.workspaces.map(space => `<button class="space-item ${cloud.active?.id === space.id ? "active" : ""}" data-space-id="${space.id}"><span class="space-icon ${esc(space.color || "violet")}">${ICONS[space.color] || "✦"}</span><span><strong>${esc(space.title)}</strong><small>${ROLES[space.role]}</small></span></button>`).join("") : `<p class="empty-side">Ton premier espace partagé commence ici.</p>`}</div>
-        <div class="account-chip"><span>${esc((cloud.user.displayName || cloud.user.email || "N").slice(0, 1).toUpperCase())}</span><div><strong>${esc(cloud.user.displayName || "Nova membre")}</strong><small>${esc(cloud.user.email || "")}</small></div></div>
+        <div class="account-chip"><span>${esc((cloud.user.displayName || cloud.user.email || "N").slice(0, 1).toUpperCase())}</span><div><strong>${esc(cloud.user.displayName || "Membre ToDoMore")}</strong><small>${esc(cloud.user.email || "")}</small></div></div>
       </aside>
-      <div class="shared-work">${cloud.active ? workspaceView() : emptyWorkspace()}</div>
+      <div class="shared-work" data-space-color="${esc(cloud.active?.color || "violet")}">${cloud.active ? workspaceView() : emptyWorkspace()}</div>
     </div>`;
 }
 
@@ -323,8 +336,9 @@ async function action(name) {
 
 function renderLogin() {
   trace("12 connexion affichée");
-  root.innerHTML = `<div class="shared-landing nova-enter"><div class="shared-hero"><span class="eyebrow">NOVA COLLAB</span><h2>Bon retour dans<br><em>la constellation.</em></h2><p>Retrouve tes objectifs, tes notes, tes réglages et les espaces que tu partages.</p><div class="shared-orbs" aria-hidden="true"><i></i><i></i><i></i></div></div><div class="auth-card glass-panel"><div class="nova-mini"><img src="assets/nova-mark-opal.png" alt=""> <strong>Compte Nova</strong></div><h3>Se connecter</h3><form id="novaLoginForm" class="nova-form"><label>E-mail<input name="email" type="email" required autocomplete="email"></label><label>Mot de passe<input name="password" type="password" required autocomplete="current-password"></label><button class="nova-primary" type="submit">Continuer <span>→</span></button></form><p class="auth-switch">Pas encore de compte ? <button type="button" data-cloud-action="back-register">Créer mon compte</button></p></div></div>`;
+  root.innerHTML = `<div class="shared-landing nova-enter"><div class="shared-hero"><span class="eyebrow">TODOMORE COLLAB</span><h2>Bon retour dans<br><em>la constellation.</em></h2><p>Retrouve tes objectifs, tes notes, tes réglages et les espaces que tu partages.</p><div class="shared-orbs" aria-hidden="true"><i></i><i></i><i></i></div></div><div class="auth-card glass-panel"><div class="nova-mini"><img src="assets/nova-mark-opal.png" alt=""> <strong>Compte ToDoMore</strong></div><h3>Se connecter</h3><form id="novaLoginForm" class="nova-form"><label>E-mail<input name="email" type="email" required autocomplete="email"></label><label>Mot de passe<input name="password" type="password" required autocomplete="current-password"></label><button type="button" class="password-reset">Mot de passe oublié ?</button><button class="nova-primary" type="submit">Continuer <span>→</span></button></form><p class="auth-switch">Pas encore de compte ? <button type="button" data-cloud-action="back-register">Créer mon compte</button></p></div></div>`;
   root.querySelector("#novaLoginForm").addEventListener("submit", login);
+  root.querySelector(".password-reset").onclick = () => requestPasswordReset(root.querySelector("#novaLoginForm"));
   root.querySelector("[data-cloud-action='back-register']").onclick = () => { cloud.panel = null; render(); };
 }
 
@@ -469,6 +483,7 @@ onAuthStateChanged(auth, async (user) => {
       await setDoc(doc(db, "users", user.uid), { displayName: user.displayName || "Membre Nova", email: user.email || "", lastSeenAt: serverTimestamp() }, { merge: true });
       await syncPersonalOnLogin();
       await loadWorkspaces();
+      if (cloud.pendingInvite) cloud.panel = "join";
     } catch (error) { friendlyError(error); }
   }
   render();
