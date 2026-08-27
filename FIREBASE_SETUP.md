@@ -4,7 +4,7 @@ Sōlo reste utilisable sans compte avec la clé locale historique `nova_tasks_v5
 
 ## Lancer Sōlo sur cet ordinateur
 
-La version recommandée est la version web hébergée : ouvre `https://itssoren.github.io/novaTasks/` (le chemin restera ainsi tant que le dépôt GitHub n’est pas renommé). Elle active directement les comptes, la synchronisation personnelle et les espaces partagés, sans lancer de fichier local.
+La version recommandée est la version web hébergée : ouvre `https://itssoren.github.io/Solo/`. Elle active directement les comptes, la synchronisation personnelle et les espaces partagés, sans lancer de fichier local.
 
 Un navigateur ne peut pas démarrer un serveur HTTP depuis un simple `file://` (c’est une restriction de sécurité). Dans ce mode, Sōlo reste donc utilisable hors ligne pour les données locales et affiche un lien vers la version web pour les fonctions cloud. Le petit lanceur local fourni dans le dossier est uniquement un secours de développement, pas une étape nécessaire pour les utilisateurs.
 

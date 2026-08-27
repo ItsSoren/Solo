@@ -391,7 +391,7 @@
         localStorage.removeItem(draftKey); stateText.textContent = "Note enregistrée";
         root.classList.add("hidden"); document.body.classList.remove("note-workspace-open");
       } catch (error) {
-        console.error("Nova note save", error); stateText.textContent = "Impossible d’enregistrer — le brouillon reste ici"; button.disabled = false;
+        console.error("Sōlo note save", error); stateText.textContent = "Impossible d’enregistrer — le brouillon reste ici"; button.disabled = false;
       }
     };
     root.onkeydown = event => {

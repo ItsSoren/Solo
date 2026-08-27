@@ -1,14 +1,14 @@
 (() => {
   "use strict";
 
-  const debug = (...values) => console.log("[Nova loader]", ...values);
+  const debug = (...values) => console.log("[Sōlo loader]", ...values);
   const trace = (name, details = {}) => window.NovaTrace?.step(name, details);
   debug("démarrage", { protocol: location.protocol });
   trace("03 chargeur démarré", { protocol: location.protocol });
-  window.addEventListener("error", event => console.error("[Nova loader] erreur runtime", event.message || event.error || event));
+  window.addEventListener("error", event => console.error("[Sōlo loader] erreur runtime", event.message || event.error || event));
 
   const emit = detail => window.dispatchEvent(new CustomEvent("nova:auth-state", { detail }));
-  const onlineUrl = "https://itssoren.github.io/novaTasks/";
+  const onlineUrl = "https://itssoren.github.io/Solo/";
 
   if (location.protocol === "file:") {
     const message = "Les comptes et espaces partagés sont disponibles dans la version web hébergée. Cette copie locale reste utilisable pour tes données hors ligne.";
@@ -35,7 +35,7 @@
     "https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js",
     "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js",
     "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js",
-    "cloud-compat.js?v=9.4.1"
+    "cloud-compat.js?v=9.4.2"
   ];
 
   const load = src => new Promise((resolve, reject) => {
@@ -43,12 +43,12 @@
     const script = document.createElement("script");
     script.src = src;
     script.onload = () => { debug("chargé", src); trace("05 script chargé", { src }); resolve(); };
-    script.onerror = error => { console.error("[Nova loader] échec", src, error); trace("ERREUR script", { src }); reject(error); };
+    script.onerror = error => { console.error("[Sōlo loader] échec", src, error); trace("ERREUR script", { src }); reject(error); };
     document.head.append(script);
   });
 
   scripts.reduce((chain, src) => chain.then(() => load(src)), Promise.resolve()).then(() => { debug("Firebase et partage prêts"); trace("06 Firebase et partage prêts"); }).catch(error => {
-    console.error("Nova cloud loader", error);
+    console.error("Sōlo cloud loader", error);
     emit({ status: "unavailable", message: "Connexion au service Sōlo indisponible." });
   });
 })();

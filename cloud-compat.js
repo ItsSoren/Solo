@@ -33,7 +33,7 @@ const sendPasswordResetEmail = (_, email) => auth.sendPasswordResetEmail(email);
 const signOut = () => auth.signOut();
 const updateProfile = (user, value) => user.updateProfile(value);
 const root = document.getElementById("sharedSection");
-const debug = (...values) => console.log("[Nova shared]", ...values);
+const debug = (...values) => console.log("[Sōlo shared]", ...values);
 const trace = (name, details = {}) => window.NovaTrace?.step(name, details);
 debug("cloud-compat chargé", { protocol: location.protocol, root: Boolean(root) });
 trace("07 partage chargé", { root: Boolean(root) });
@@ -116,7 +116,7 @@ function subscribeWorkspace() {
 }
 
 function friendlyError(error) {
-  console.error("Nova shared", error);
+  console.error("Sōlo shared", error);
   trace("ERREUR Firebase", { code: error?.code || "unknown" });
   const permission = error.code === "permission-denied" || error.code === "firestore/permission-denied";
   flash(permission ? "Accès refusé : publie le fichier firestore.rules dans la console Firebase, puis réessaie." : "Connexion Firebase indisponible. Réessaie dans un instant.", "error");

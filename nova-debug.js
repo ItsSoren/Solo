@@ -13,13 +13,13 @@
     return panel;
   };
   const step = (name, details = {}) => {
-    const entry = `[Nova trace] ${name}`;
+    const entry = `[Sōlo trace] ${name}`;
     console.log(entry, details);
     if (!enabled) return;
     lines.push(`${new Date().toLocaleTimeString()}  ${name}${Object.keys(details).length ? `  ${text(details)}` : ""}`);
     while (lines.length > 14) lines.shift();
     const node = ensurePanel();
-    node.innerHTML = `<strong style="display:block;margin-bottom:7px;color:#8ff2e9">Nova diagnostic</strong>${lines.map(line => `<div style="padding:2px 0;border-top:1px solid rgba(160,230,230,.12)">${line.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c])}</div>`).join("")}`;
+    node.innerHTML = `<strong style="display:block;margin-bottom:7px;color:#8ff2e9">Sōlo diagnostic</strong>${lines.map(line => `<div style="padding:2px 0;border-top:1px solid rgba(160,230,230,.12)">${line.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c])}</div>`).join("")}`;
   };
   window.NovaTrace = { step };
   step("00 diagnostic prêt", { debugPanel: enabled });

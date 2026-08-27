@@ -67,7 +67,10 @@ service cloud.firestore {
     // Invites are high-entropy document ids. They can be fetched by a known code,
     // but never listed. No Firebase Storage or Cloud Functions are required.
     match /invites/{inviteCode} {
-      allow get: if signedIn() && resource.data.expiresAt > request.time;
+      // Le code est un identifiant aléatoire de 8 caractères : il n’est jamais
+      // listable. La date d’expiration est vérifiée côté client afin qu’un code
+      // inconnu renvoie « invalide » plutôt qu’une erreur de permission.
+      allow get: if signedIn();
       allow list: if false;
       allow create: if signedIn() && isAdmin(request.resource.data.workspaceId);
       allow update: if signedIn() && resource.data.workspaceId == request.resource.data.workspaceId
