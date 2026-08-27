@@ -15,6 +15,17 @@ service cloud.firestore {
     function canEdit(workspaceId) {
       return isMember(workspaceId) && get(memberPath(workspaceId, request.auth.uid)).data.role in ['admin', 'member'];
     }
+
+    // Flow partage le projet Firebase, mais possède ses propres collections.
+    // Ces helpers ne lisent et n'autorisent jamais les collections Sōlo ci-dessus.
+    function flowSignedIn() { return request.auth != null; }
+    function flowOwn(userId) { return flowSignedIn() && request.auth.uid == userId; }
+    function flowMemberPath(workspaceId, userId) {
+      return /databases/$(database)/documents/flowWorkspaces/$(workspaceId)/members/$(userId);
+    }
+    function flowMember(workspaceId) {
+      return flowSignedIn() && exists(flowMemberPath(workspaceId, request.auth.uid));
+    }
     function validTask(data) {
       return data.keys().hasAll(['title', 'description', 'priority', 'status', 'createdBy', 'updatedAt'])
         && data.title is string && data.title.size() > 0 && data.title.size() <= 100
@@ -128,6 +139,46 @@ service cloud.firestore {
           && request.resource.data.kind in ['workspace', 'task-created', 'task-done', 'note-saved', 'member', 'invite'];
         allow update, delete: if false;
       }
+    }
+
+    // Namespace Flow : données personnelles, espaces financiers et invitations
+    // restent isolés de Sōlo/NovaTasks, tout en utilisant le même Firebase Auth.
+    match /flowUsers/{userId} {
+      allow read, create, update: if flowOwn(userId);
+      allow delete: if false;
+      match /workspaces/{workspaceId} {
+        allow read, create, update, delete: if flowOwn(userId);
+      }
+    }
+
+    match /flowWorkspaces/{workspaceId} {
+      allow get: if flowMember(workspaceId);
+      allow list: if false;
+      allow create: if flowSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if flowMember(workspaceId);
+      allow delete: if false;
+
+      match /members/{userId} {
+        allow read, create, update, delete: if flowMember(workspaceId);
+      }
+      match /transactions/{transactionId} {
+        allow read, create, update, delete: if flowMember(workspaceId);
+      }
+      match /recurring/{recurringId} {
+        allow read, create, update, delete: if flowMember(workspaceId);
+      }
+      match /goals/{goalId} {
+        allow read, create, update, delete: if flowMember(workspaceId);
+      }
+    }
+
+    match /flowInvites/{code} {
+      allow get: if flowSignedIn();
+      allow list: if false;
+      allow create, update: if flowSignedIn()
+        && request.resource.data.createdBy == request.auth.uid;
+      allow delete: if flowSignedIn()
+        && resource.data.createdBy == request.auth.uid;
     }
   }
 }
