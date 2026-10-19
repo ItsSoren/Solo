@@ -1,6 +1,6 @@
 "use strict";
-const CACHE = "solo-shell-10-5";
-const SHELL = ["./", "./index.html", "./nova.css?v=10.0.0", "./planner.css?v=10.0.2", "./editor.js?v=10.0.0", "./planner-core.js?v=10.0.0", "./nova-app.js?v=10.0.1", "./planner.js?v=10.0.1", "./nova-debug.js?v=1.0.1", "./nova-ux.js?v=9.3.2", "./cloud-loader.js?v=10.0.0", "./assets/solo-mark-opal.png", "./assets/bootstrap-icons.css", "./assets/fonts/bootstrap-icons.woff2", "./manifest.webmanifest"];
+const CACHE = "solo-shell-10-6";
+const SHELL = ["./", "./index.html", "./nova.css?v=10.0.0", "./planner.css?v=10.1.0", "./editor.js?v=10.0.0", "./planner-core.js?v=10.1.0", "./nova-app.js?v=10.1.0", "./planner.js?v=10.1.0", "./nova-debug.js?v=1.0.1", "./nova-ux.js?v=10.1.0", "./cloud-loader.js?v=10.0.0", "./assets/solo-mark-opal.png", "./assets/bootstrap-icons.css", "./assets/fonts/bootstrap-icons.woff2", "./manifest.webmanifest"];
 self.addEventListener("install", event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL))));
 // An update waits for existing tabs to close, so a form never reloads mid-edit.
 self.addEventListener("activate", event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith("solo-shell-") && key !== CACHE).map(key => caches.delete(key))))));

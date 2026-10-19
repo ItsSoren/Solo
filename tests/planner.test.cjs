@@ -90,3 +90,23 @@ test('recurring exports keep wall-clock times across the DST transition', () => 
     assert.ok(ics.includes(`DTSTART:${expected}`));
   }
 });
+
+test('year overview counts recurring occurrences by type, including leap day and excluding skipped dates', () => {
+  const tasks = [task({planDate:'2028-02-28', repeatUntil:'2028-03-01', occurrences:{'2028-02-29':{status:'skipped'}}}), task({id:'meeting',kind:'appointment',lifeMode:'pro',planDate:'2028-02-29',repeat:'none'})];
+  const year = C.yearSummary(tasks, 2028);
+  assert.equal(year.length, 12);
+  assert.deepEqual(year[1], {month:'2028-02', total:2, appointments:1, missions:1});
+  assert.equal(year[2].total, 1);
+  assert.equal(year[0].total, 0);
+  assert.equal(C.yearSummary(tasks, 2028, 'pro')[1].total, 1);
+  assert.equal(C.yearSummary(tasks, 2027)[1].total, 0);
+});
+
+test('month grids include complete weeks without an unnecessary empty week', () => {
+  const october=C.monthDays('2026-10');
+  assert.equal(october.length,35);
+  assert.equal(october[0],'2026-09-28');
+  assert.equal(october.at(-1),'2026-11-01');
+  assert.equal(C.monthDays('2021-02').length,28);
+  assert.equal(C.monthDays('2026-08').length,42);
+});

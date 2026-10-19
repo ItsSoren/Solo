@@ -4,13 +4,13 @@
   const app = () => window.NovaApp;
   const uid = () => typeof crypto?.randomUUID === "function" ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const mode = () => app().state.settings.lifeMode === "pro" ? "pro" : "personal";
-  const scope = () => app().state.settings.agendaAll ? "all" : mode();
+  const scope = () => "all";
   const today = () => C.dayKey(Date.now());
   const dateLabel = key => C.dateOf(key).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
   const clock = ts => new Date(ts).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   const repeatNames = { none: "Une fois", daily: "Chaque jour", weekdays: "Du lundi au vendredi", weekly: "Chaque semaine", monthly: "Chaque mois" };
   const fontNames = { sans: "Claire", serif: "Littéraire", mono: "Machine à écrire", rounded: "Douce" };
-  let selected = today(), month = selected.slice(0, 7), activeSection = "home", workerRegistration, lastVisibleDay = today();
+  let selected = today(), month = selected.slice(0, 7), activeSection = "home", calendarView = "month", workerRegistration, lastVisibleDay = today();
 
   function commit(change) {
     const before = structuredClone(app().state);
@@ -40,7 +40,7 @@
     </article>`;
   }
   function header(title, subtitle) {
-    return `<header class="daily-heading"><div><span class="eyebrow">SŌLO · ${mode() === "pro" ? "ESPACE PRO" : "TON QUOTIDIEN"}</span><h1>${title}</h1><p>${subtitle}</p></div><div class="daily-header-actions"><div class="life-switch" role="group" aria-label="Ambiance"><button data-mode="personal" class="${mode() === "personal" ? "active" : ""}" aria-pressed="${mode() === "personal"}">Perso</button><button data-mode="pro" class="${mode() === "pro" ? "active" : ""}" aria-pressed="${mode() === "pro"}">Pro</button></div><button class="primary" data-new="task">＋ Ajouter</button></div></header><div class="agenda-tools"><label><input type="checkbox" id="agendaAll" ${scope() === "all" ? "checked" : ""}> Voir Pro et Perso ensemble</label><button class="text-btn" data-route="tasks">Tous les objectifs →</button><button class="text-btn" data-reminder-settings>Rappels & confidentialité</button></div>`;
+    return `<header class="daily-heading"><div><span class="eyebrow">SŌLO · ${mode() === "pro" ? "ESPACE PRO" : "TON QUOTIDIEN"}</span><h1>${title}</h1><p>${subtitle}</p></div><button class="primary" data-new="task">＋ Ajouter</button></header><div class="agenda-tools"><button class="text-btn" data-route="tasks">Tous les objectifs →</button><button class="text-btn" data-reminder-settings>Rappels & confidentialité</button></div>`;
   }
   function home(root) {
     const entries = C.forDay(app().state.tasks, today(), scope()), open = entries.filter(e => e.status === "open");
@@ -49,11 +49,11 @@
     const overdue = app().state.tasks.filter(task => (!task.repeat || task.repeat === "none") && task.state === "inprogress" && C.anchor(task) && C.anchor(task) < today() && C.status(task, C.anchor(task)) === "open" && (scope() === "all" || (task.lifeMode || "personal") === scope()));
     const next = appointments.find(e => e.at >= Date.now()), focus = next || essential[0] || flexible[0];
     const name = app().state.profile.name ? `, ${esc(app().state.profile.name)}` : "";
-    const group = (title, list, hint = "") => `<section class="day-group"><div class="day-group-heading"><h2>${title} <span>${list.length}</span></h2>${hint ? `<p>${hint}</p>` : ""}</div>${list.length ? list.map(itemRow).join("") : '<p class="agenda-empty">Rien à prévoir ici.</p>'}</section>`;
-    root.innerHTML = `<div class="daily-page">${header(`Bonjour${name}.`, dateLabel(today()))}
+    const group = (title, list, hint = "") => !list.length ? "" : `<section class="day-group"><div class="day-group-heading"><h2>${title} <span>${list.length}</span></h2>${hint ? `<p>${hint}</p>` : ""}</div>${list.length ? list.map(itemRow).join("") : '<p class="agenda-empty">Rien à prévoir ici.</p>'}</section>`;
+    root.innerHTML = `<div class="daily-page ${!entries.length ? "is-empty" : ""}">${header(`Bonjour${name}.`, dateLabel(today()))}
       <div class="daily-layout"><div class="daily-main">
       <article class="daily-focus"><span class="eyebrow">${next ? "TON PROCHAIN RENDEZ-VOUS" : "UN PAS À LA FOIS"}</span><h2>${focus ? esc(focus.task.title) : "Un peu de place pour toi."}</h2><p>${next ? `${clock(next.at)}${next.task.location ? ` · ${esc(next.task.location)}` : ""}` : essential.length ? `${essential.length} essentiel${essential.length > 1 ? "s" : ""} à garder en vue. Le facultatif peut attendre.` : mode() === "pro" ? "Ton planning est à jour. Ajoute un engagement ou consulte le calendrier." : "Tout n’a pas besoin d’être fait aujourd’hui. Choisis ce qui te fera avancer."}</p>${focus ? entryButton(focus.task, focus.day, "Ouvrir →", "edit", "primary") : '<button class="primary" data-new="task">Préparer ma journée</button>'}</article>
-      ${group("À heure fixe", appointments)}${group("Ce qui compte aujourd’hui", essential)}${group("À ton rythme", flexible, mode() === "personal" ? "Tu peux passer une petite mission flexible ou facultative, sans la compter comme accomplie." : "Tâches à placer entre tes engagements.")}
+      ${!open.length ? '<p class="day-empty-summary">Rien de prévu aujourd’hui.</p>' : ""}${group("À heure fixe", appointments)}${group("Ce qui compte aujourd’hui", essential)}${group("À ton rythme", flexible, mode() === "personal" ? "Tu peux passer une petite mission flexible ou facultative, sans la compter comme accomplie." : "Tâches à placer entre tes engagements.")}
       ${overdue.length ? group("À replanifier", overdue.slice(0, 12).map(task => ({ task, day: C.anchor(task), status: "open", at: C.timestamp(task, C.anchor(task)) })), "Une date dépassée reste visible. Ouvre la tâche pour choisir une nouvelle date.") : ""}
       ${finished.length ? `<details class="finished-list"><summary>Fait ou passé aujourd’hui (${finished.length})</summary>${finished.map(itemRow).join("")}</details>` : ""}
       </div><aside class="daily-aside">
@@ -63,22 +63,57 @@
       </aside></div></div>`;
     bind(root);
   }
+  function monthMarkup() {
+    const start = C.dateOf(`${month}-01`);
+    const title = start.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+    return `<div class="month-weekdays" aria-hidden="true">${["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"].map(d => `<span>${d}</span>`).join("")}</div><div class="month-grid" role="group" aria-label="${title}">${C.monthDays(month).map(day => {
+      const list = C.forDay(app().state.tasks, day, scope()).filter(e => e.status !== "skipped"), rdv = list.filter(e => e.task.kind === "appointment").length;
+      return `<button class="month-day ${day.slice(0, 7) !== month ? "outside" : ""} ${day === today() ? "today" : ""} ${day === selected ? "selected" : ""}" data-calendar-day="${day}" aria-pressed="${day === selected}" ${day === today() ? 'aria-current="date"' : ""} aria-label="${dateLabel(day)}, ${rdv} rendez-vous, ${list.length-rdv} missions"><span class="day-number">${Number(day.slice(-2))}</span><span class="day-events">${list.slice(0,2).map(e => `<span class="day-event ${e.task.kind === "appointment" ? "fixed" : ""} ${e.status}">${esc(e.task.planTime || "")} ${esc(e.task.title)}</span>`).join("")}${list.length>2 ? `<small>+ ${list.length-2}</small>` : ""}</span>${list.length ? `<span class="day-counts">${rdv ? `<span class="count-rdv" title="Rendez-vous">${rdv} R</span>` : ""}${list.length-rdv ? `<span title="Missions">${list.length-rdv} M</span>` : ""}</span>` : ""}</button>`;
+    }).join("")}</div><p class="calendar-legend">R : rendez-vous · M : missions. Choisis une date pour voir ses horaires.</p>`;
+  }
+  function dayMarkup(entries) {
+    const timed = entries.filter(e => C.validTime(e.task.planTime)), untimed = entries.filter(e => !C.validTime(e.task.planTime));
+    return `${untimed.length ? `<section class="untimed-events"><h3>Sans horaire (${untimed.length})</h3>${untimed.map(itemRow).join("")}</section>` : ""}${!entries.length ? '<p class="day-empty-summary">Journée libre · touche une heure pour ajouter.</p>' : ""}<div class="hour-agenda" role="region" aria-label="Horaires de la journée" tabindex="0">${Array.from({length:24},(_,hour)=> {
+      const time = `${String(hour).padStart(2,"0")}:00`, list = timed.filter(e=>Number(e.task.planTime.slice(0,2))===hour);
+      return `<section class="hour-row" data-hour="${hour}"><button class="hour-label" data-hour-add="${time}" aria-label="Ajouter à ${time}">${time}</button><div>${list.map(e=>`<div class="timed-event"><span class="event-duration">${esc(e.task.planTime)} · ${Number(e.task.durationMinutes)||30} min</span>${itemRow(e)}</div>`).join("")}</div></section>`;
+    }).join("")}</div>`;
+  }
+  function yearMarkup() {
+    return `<div class="year-grid">${C.yearSummary(app().state.tasks,Number(month.slice(0,4)),scope()).map(m=>`<button class="year-month" data-open-month="${m.month}"><strong>${C.dateOf(`${m.month}-01`).toLocaleDateString("fr-FR",{month:"long"})}</strong><span class="year-total">${m.total}<small> événement${m.total>1?"s":""}</small></span><span class="month-types"><span>${m.appointments} rendez-vous</span><span>${m.missions} mission${m.missions>1?"s":""}</span></span></button>`).join("")}</div><p class="calendar-legend">Les répétitions sont comptées à chaque date ; les occurrences passées volontairement sont exclues.</p>`;
+  }
+  function fitHourAgenda() {
+    if(activeSection !== "calendar") return;
+    const scroller=document.querySelector("#calendarSection .hour-agenda");
+    if(!scroller) return;
+    const page=scroller.closest(".daily-page"), panel=scroller.parentElement;
+    const available=page.getBoundingClientRect().bottom-scroller.getBoundingClientRect().top-parseFloat(getComputedStyle(page).paddingBottom)-parseFloat(getComputedStyle(panel).paddingBottom)-4;
+    scroller.style.maxHeight=`${Math.max(180,Math.floor(available))}px`;
+  }
   function calendar(root) {
-    const start = C.dateOf(`${month}-01`), first = C.addDays(C.dayKey(start), -((start.getDay() + 6) % 7));
     const entries = C.forDay(app().state.tasks, selected, scope());
-    const monthTitle = start.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
-    root.innerHTML = `<div class="daily-page">${header("Ton calendrier", mode() === "pro" ? "Les engagements au bon endroit, le temps libre bien visible." : "Un mois lisible. Des journées à ta mesure.")}
-      <div class="calendar-layout"><section class="month-panel panel"><div class="month-toolbar"><h2>${monthTitle}</h2><div><button class="secondary" data-month="-1" aria-label="Mois précédent">‹</button><button class="secondary" data-month="today">Aujourd’hui</button><button class="secondary" data-month="1" aria-label="Mois suivant">›</button></div></div><div class="month-weekdays" aria-hidden="true">${["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"].map(d => `<span>${d}</span>`).join("")}</div>
-      <div class="month-grid" role="group" aria-label="${monthTitle}">${Array.from({ length: 42 }, (_, i) => {
-        const day = C.addDays(first, i), list = C.forDay(app().state.tasks, day, scope());
-        return `<button class="month-day ${day.slice(0, 7) !== month ? "outside" : ""} ${day === today() ? "today" : ""} ${day === selected ? "selected" : ""}" data-calendar-day="${day}" aria-pressed="${day === selected}" ${day === today() ? 'aria-current="date"' : ""} aria-label="${dateLabel(day)}, ${list.length} éléments"><span class="day-number">${Number(day.slice(-2))}</span><span class="day-events">${list.slice(0, 2).map(e => `<span class="day-event ${e.task.kind === "appointment" ? "fixed" : ""} ${e.status}">${esc(e.task.planTime || "")}${e.task.planTime ? " " : ""}${esc(e.task.title)}</span>`).join("")}${list.length > 2 ? `<small>+ ${list.length - 2}</small>` : ""}</span>${list.length ? `<span class="day-dots" aria-hidden="true">${list.slice(0, 4).map(e => `<i class="${e.task.kind === "appointment" ? "fixed" : ""}"></i>`).join("")}</span>` : ""}</button>`;
-      }).join("")}</div><p class="calendar-legend"><span>● Rendez-vous</span> <span>● Mission</span> · Clique sur un jour pour l’organiser.</p></section>
-      <aside class="selected-day panel"><span class="eyebrow">LE JOUR EN DÉTAIL</span><h2>${dateLabel(selected)}</h2><button class="primary full" data-new="task">＋ Mission</button><button class="secondary full" data-new="appointment">＋ Rendez-vous</button><div class="selected-day-list">${entries.length ? entries.map(itemRow).join("") : '<p class="agenda-empty">De la place pour ce qui compte.</p>'}</div><button class="text-btn" data-export-calendar>Exporter mon agenda (.ics)</button><p class="agenda-footnote">Copie des 12 prochains mois à importer dans Calendrier Apple ou Outlook. Ce fichier ne se met pas à jour automatiquement.</p></aside></div></div>`;
+    const title = calendarView === "day" ? dateLabel(selected) : calendarView === "year" ? month.slice(0,4) : C.dateOf(`${month}-01`).toLocaleDateString("fr-FR",{month:"long",year:"numeric"});
+    root.innerHTML = `<div class="daily-page">${header("Ton calendrier", "Chaque heure, chaque mois, toute l’année.")}<div class="calendar-layout calendar-view-${calendarView}"><section class="month-panel panel"><div class="calendar-view-switch" role="group" aria-label="Vue du calendrier">${[["day","Jour"],["month","Mois"],["year","Année"]].map(([key,label])=>`<button data-calendar-view="${key}" class="${calendarView===key?"active":""}" aria-pressed="${calendarView===key}">${label}</button>`).join("")}</div><div class="month-toolbar"><h2 aria-live="polite">${title}</h2><div><button class="secondary" data-period="-1" aria-label="${calendarView==='day'?'Jour':calendarView==='year'?'Année':'Mois'} précédent">‹</button><button class="secondary" data-period="today">Aujourd’hui</button><button class="secondary" data-period="1" aria-label="${calendarView==='day'?'Jour':calendarView==='year'?'Année':'Mois'} suivant">›</button></div></div>${calendarView==="day"?`<div class="day-quick-actions"><button class="primary" data-new="task">＋ Mission</button><button class="secondary" data-new="appointment">＋ Rendez-vous</button><button class="text-btn" data-export-calendar>Exporter (.ics)</button></div>${dayMarkup(entries)}`:calendarView==="year"?yearMarkup():monthMarkup()}</section>${calendarView==="month"?`<aside class="selected-day panel"><span class="eyebrow">${calendarView==="day"?"ORGANISER":"LE JOUR EN DÉTAIL"}</span><h2>${dateLabel(selected)}</h2><button class="primary full" data-new="task">＋ Mission</button><button class="secondary full" data-new="appointment">＋ Rendez-vous</button>${calendarView==="month"?`<button class="secondary full" data-calendar-view="day">Voir les horaires →</button><div class="selected-day-list">${entries.length?entries.map(itemRow).join(""):'<p class="agenda-empty">Aucun événement.</p>'}</div>`:""}<button class="text-btn" data-export-calendar>Exporter mon agenda (.ics)</button><p class="agenda-footnote">Copie à importer dans Calendrier Apple ou Outlook, avec les alertes. Sans mise à jour automatique.</p></aside>`:""}</div></div>`;
     bind(root);
+    root.querySelectorAll('[data-calendar-view]').forEach(b=>b.onclick=()=>{calendarView=b.dataset.calendarView;calendar(root);});
+    root.querySelectorAll('[data-open-month]').forEach(b=>b.onclick=()=>{month=b.dataset.openMonth;selected=`${month}-01`;calendarView="month";calendar(root);});
+    root.querySelectorAll('[data-period]').forEach(b=>b.onclick=()=>{
+      if(b.dataset.period==="today"){selected=today();month=selected.slice(0,7);}else{
+        const delta=Number(b.dataset.period);
+        if(calendarView==="day")selected=C.addDays(selected,delta);
+        else {const d=C.dateOf(`${month}-01`);if(calendarView==="year")d.setFullYear(d.getFullYear()+delta);else d.setMonth(d.getMonth()+delta);selected=C.dayKey(d);}
+        month=selected.slice(0,7);
+      }
+      calendar(root);
+    });
+    root.querySelectorAll('[data-hour-add]').forEach(b=>b.onclick=()=>openItem(null,{planDate:selected,planTime:b.dataset.hourAdd}));
+    if(calendarView==="day"){
+      fitHourAgenda();
+      const first=entries.find(e=>C.validTime(e.task.planTime)&&e.status==="open"), hour=first?Number(first.task.planTime.slice(0,2)):8;
+      const scroller=root.querySelector('.hour-agenda'), row=root.querySelector(`[data-hour="${Math.max(0,hour-1)}"]`);
+      if(scroller&&row)scroller.scrollTop=row.offsetTop;
+    }
   }
   function bind(root) {
-    root.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { if (commit(() => { app().state.settings.lifeMode = b.dataset.mode; })) app().refresh(); });
-    root.querySelector("#agendaAll").onchange = e => { if (commit(() => { app().state.settings.agendaAll = e.target.checked; })) app().refresh(); };
     root.querySelectorAll("[data-route]").forEach(b => b.onclick = () => app().navigate(b.dataset.route));
     root.querySelectorAll("[data-new]").forEach(b => b.onclick = () => openItem(null, { kind: b.dataset.new, planDate: activeSection === "calendar" ? selected : today() }));
     root.querySelectorAll("[data-entry]").forEach(b => b.onclick = () => {
@@ -89,7 +124,7 @@
       if (day > today() && next === "done") return app().toast("Cette mission est prévue plus tard. Tu pourras la cocher le jour venu.");
       if (commit(() => C.mark(task, day, next))) { app().refresh(); app().toast(next === "done" ? task.kind === "appointment" ? "Rendez-vous honoré" : "Un pas de plus. Bien joué." : next === "skipped" ? "Passée pour cette fois. Les essentiels restent en vue." : "Mission rétablie"); }
     });
-    root.querySelectorAll("[data-calendar-day]").forEach(b => b.onclick = () => { selected = b.dataset.calendarDay; calendar(root); });
+    root.querySelectorAll("[data-calendar-day]").forEach(b => b.onclick = () => { selected = b.dataset.calendarDay; month = selected.slice(0,7); calendar(root); });
     root.querySelectorAll("[data-month]").forEach(b => b.onclick = () => { if (b.dataset.month === "today") { selected = today(); month = selected.slice(0, 7); } else { const d = C.dateOf(`${month}-01`); d.setMonth(d.getMonth() + Number(b.dataset.month)); month = C.dayKey(d).slice(0, 7); selected = `${month}-01`; } calendar(root); });
     root.querySelectorAll("[data-template]").forEach(b => b.onclick = () => createTemplate(b.dataset.template));
     root.querySelector("[data-reminder-settings]").onclick = reminderSettings;
@@ -99,7 +134,7 @@
     const existing = app().state.tasks.find(t => t.id === id), draft = structuredClone(existing || { id: uid(), title: "", description: "", importance: 2, state: "inprogress", steps: [], tags: [], createdAt: Date.now(), kind: "task", lifeMode: mode(), planDate: today(), repeat: "none", remindBefore: 15, durationMinutes: 30, ...defaults });
     const dialog = document.getElementById("taskDialog"), date = C.anchor(draft), value = (key, fallback = "") => esc(String(draft[key] ?? fallback));
     dialog.innerHTML = `<form class="modal-content agenda-form"><header class="modal-head"><div><span class="eyebrow">${existing ? "AJUSTER" : "FAIRE DE LA PLACE"}</span><h2>${existing ? "Modifier cet engagement" : "Qu’est-ce que tu prévois ?"}</h2></div><button type="button" class="icon-btn" data-close aria-label="Fermer">✕</button></header>
-      <div class="form-stack"><label>Titre<input name="title" required maxlength="120" value="${value("title")}" placeholder="Ex. Dentiste, lire 15 minutes…"></label><div class="form-two"><label>Type<select name="kind"><option value="task" ${draft.kind !== "appointment" ? "selected" : ""}>Mission / objectif</option><option value="appointment" ${draft.kind === "appointment" ? "selected" : ""}>Rendez-vous à heure fixe</option></select></label><label>Espace<select name="lifeMode"><option value="personal" ${draft.lifeMode !== "pro" ? "selected" : ""}>Perso</option><option value="pro" ${draft.lifeMode === "pro" ? "selected" : ""}>Pro</option></select></label></div>
+      <div class="form-stack"><label>Titre<input name="title" required maxlength="120" value="${value("title")}" placeholder="Ex. Dentiste, lire 15 minutes…"></label><div class="form-two"><label>Type<select name="kind"><option value="task" ${draft.kind !== "appointment" ? "selected" : ""}>Mission / objectif</option><option value="appointment" ${draft.kind === "appointment" ? "selected" : ""}>Rendez-vous à heure fixe</option></select></label><label>Catégorie<select name="lifeMode"><option value="personal" ${draft.lifeMode !== "pro" ? "selected" : ""}>Perso</option><option value="pro" ${draft.lifeMode === "pro" ? "selected" : ""}>Pro</option></select></label></div>
       <div class="form-two"><label>Date<input type="date" name="planDate" value="${esc(date)}"></label><label>Heure <small>facultative pour une mission</small><input type="time" name="planTime" value="${value("planTime")}"></label></div>
       <div class="mission-fields"><div class="form-two"><label>Importance<select name="importance">${[[1,"Facultatif — je peux passer"],[2,"Normal — je m’organise"],[3,"Essentiel — à garder en vue"]].map(([n,l]) => `<option value="${n}" ${Number(draft.importance) === n ? "selected" : ""}>${l}</option>`).join("")}</select></label><label>Effort<select name="effort"><option value="normal">Standard</option><option value="quick" ${draft.effort === "quick" ? "selected" : ""}>Petit pas (5–15 min)</option></select></label></div></div>
       <div class="appointment-fields"><label>Adresse <small>transmise à Maps seulement si tu ouvres l’itinéraire</small><input name="location" maxlength="300" value="${value("location")}" autocomplete="off" placeholder="Adresse du rendez-vous"></label><div class="form-two"><label>Durée du rendez-vous (min)<input type="number" min="5" max="1440" name="durationMinutes" value="${value("durationMinutes",30)}"></label><label>Trajet estimé par toi (min)<input type="number" min="0" max="1440" name="travelMinutes" value="${value("travelMinutes",0)}"></label></div><label>Marge d’arrivée (min)<input type="number" min="0" max="120" name="arrivalBuffer" value="${value("arrivalBuffer",5)}"></label></div>
@@ -181,6 +216,7 @@
   }
   window.SoloPlanner = {
     openItem, createTemplate, templateFor, reminderSettings, fontNames, download,
+    setMode(value) { if (["personal","pro"].includes(value) && commit(() => { app().state.settings.lifeMode = value; })) app().refresh(); },
     renderSection(section) {
       activeSection = section; document.body.dataset.lifeMode = mode();
       if (section === "home" || section === "calendar") { (section === "home" ? home : calendar)(document.getElementById(`${section}Section`)); return true; }
@@ -188,6 +224,7 @@
       return false;
     }
   };
+  window.addEventListener("resize", fitHourAgenda);
   window.addEventListener("solo:save-error", () => banner("Enregistrement impossible sur cet appareil. Tes dernières modifications ne sont pas sauvegardées.", { label: "Exporter une copie", run: () => download(JSON.stringify(app().state), "solo-copie-secours.json", "application/json") }));
   window.addEventListener("storage", e => { if (e.key === "nova_tasks_v5") banner("Une autre fenêtre a modifié Sōlo. Recharge cette page avant de poursuivre pour éviter d’écraser ces changements.", { label: "Recharger", run: () => location.reload() }); });
   window.addEventListener("solo:storage-conflict", () => banner("Une autre fenêtre a modifié Sōlo. Enregistrement bloqué pour préserver ses changements.", { label: "Recharger", run: () => location.reload() }));

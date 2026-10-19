@@ -1,13 +1,15 @@
 (() => {
-  const TUTORIAL_KEY = "nova_tasks_tutorial_v9_seen";
+  const TUTORIAL_KEY = "solo_tutorial_v10_1_seen";
   const STARTUP_KEY = "solo_startup_choice_v1";
   const STORAGE_KEY = "nova_tasks_v5";
   const storageGet = key => { try { return globalThis.localStorage?.getItem(key) || ""; } catch { return ""; } };
   const storageSet = (key, value) => { try { globalThis.localStorage?.setItem(key, value); } catch {} };
   const steps = [
-    { icon: "bi-house-heart", eyebrow: "1 sur 3 · AUJOURD’HUI", title: "L’essentiel, dès l’ouverture.", text: "Sōlo te montre le prochain objectif, les échéances proches et tes notes rapides sans surcharger l’écran." },
-    { icon: "bi-check2-square", eyebrow: "2 sur 3 · OBJECTIFS & NOTES", title: "Écris vite, organise ensuite.", text: "Crée un objectif simple ou ouvre une note en plein écran pour ajouter titres, listes, liens et cases à cocher." },
-    { icon: "bi-people", eyebrow: "3 sur 3 · COMPTE & PARTAGE", title: "Local ou synchronisé, à toi de choisir.", text: "Sōlo fonctionne sans compte. Connecte-toi pour retrouver tes données personnelles et collaborer dans des espaces privés." }
+    { icon: "bi-house-heart", eyebrow: "1 sur 5 · TON QUOTIDIEN", title: "L’essentiel, sans le bruit.", text: "Aujourd’hui regroupe tes rendez-vous, tes essentiels et tes petites missions. Les sections vides s’effacent. Dans Réglages → Thème, choisis l’ambiance globale Perso ou Pro." },
+    { icon: "bi-calendar3", eyebrow: "2 sur 5 · CALENDRIER", title: "Du rendez-vous à l’année.", text: "Jour affiche les heures : touche une heure pour ajouter un événement. Mois montre les dates et leurs types d’événements. Année résume les 12 mois ; touche un mois pour l’ouvrir." },
+    { icon: "bi-check2-square", eyebrow: "3 sur 5 · MISSIONS & RAPPELS", title: "Un rythme qui tient.", text: "Ajoute une date, une priorité et une répétition à tes missions. Les petites tâches facultatives peuvent être passées sans gagner de progression. Pour les alertes site fermé, exporte l’agenda vers ton calendrier ; les trajets restent estimés manuellement." },
+    { icon: "bi-journal-richtext", eyebrow: "4 sur 5 · NOTES & PARTAGE", title: "Des idées à garder ensemble.", text: "Pars d’une liste de films, d’un classement ou d’un poème. Dans l’éditeur : titres, listes, cases à cocher, polices et export. Connecte-toi pour synchroniser tes données et créer des espaces privés avec tes proches." },
+    { icon: "bi-shield-check", eyebrow: "5 sur 5 · TES RÉGLAGES", title: "Tu gardes la main.", text: "Sans compte, tes données restent sur cet appareil : exporte une sauvegarde depuis Réglages → Données. Dans Aide, retrouve ce guide et les limites des rappels. Une adresse n’est envoyée à Google Maps que si tu ouvres l’itinéraire." }
   ];
   let index = 0;
   let tutorialAfterAuth = false;
@@ -64,10 +66,11 @@
     dialog = document.createElement("dialog");
     dialog.id = "novaTutorial";
     dialog.className = "tutorial-dialog";
-    dialog.innerHTML = `<div class="tutorial-card"><button class="icon-btn tutorial-close" type="button" aria-label="Passer"><i class="bi bi-x-lg"></i></button><div class="tutorial-art"><div><span class="tutorial-orb"><i id="tutorialIcon" class="bi"></i></span><i></i><i></i><i></i></div></div><div class="tutorial-copy"><span id="tutorialEyebrow" class="eyebrow"></span><h2 id="tutorialTitle"></h2><p id="tutorialText"></p><div class="tutorial-bottom"><div id="tutorialDots" class="tutorial-dots"></div><div><button type="button" id="tutorialSkip" class="secondary">Passer</button><button type="button" id="tutorialNext" class="primary">Continuer <i class="bi bi-arrow-right"></i></button></div></div></div></div>`;
+    dialog.innerHTML = `<div class="tutorial-card"><button class="icon-btn tutorial-close" type="button" aria-label="Passer"><i class="bi bi-x-lg"></i></button><div class="tutorial-art"><div><span class="tutorial-orb"><i id="tutorialIcon" class="bi"></i></span><i></i><i></i><i></i></div></div><div class="tutorial-copy"><span id="tutorialEyebrow" class="eyebrow"></span><h2 id="tutorialTitle"></h2><p id="tutorialText"></p><div class="tutorial-bottom"><div id="tutorialDots" class="tutorial-dots"></div><div><button type="button" id="tutorialPrev" class="secondary" aria-label="Étape précédente">Retour</button><button type="button" id="tutorialSkip" class="secondary">Passer</button><button type="button" id="tutorialNext" class="primary">Continuer <i class="bi bi-arrow-right"></i></button></div></div></div></div>`;
     document.body.appendChild(dialog);
     dialog.querySelector(".tutorial-close").onclick = close;
     dialog.querySelector("#tutorialSkip").onclick = close;
+    dialog.querySelector("#tutorialPrev").onclick = () => { if(index>0){index-=1;render();} };
     dialog.querySelector("#tutorialNext").onclick = () => index < steps.length - 1 ? (index += 1, render()) : close();
     dialog.addEventListener("cancel", event => { event.preventDefault(); close(); });
     return dialog;
@@ -76,6 +79,7 @@
   function render() {
     const dialog = ensureDialog();
     const step = steps[index];
+    dialog.querySelector("#tutorialPrev").disabled = index === 0;
     dialog.querySelector("#tutorialIcon").className = `bi ${step.icon}`;
     dialog.querySelector("#tutorialEyebrow").textContent = step.eyebrow;
     dialog.querySelector("#tutorialTitle").textContent = step.title;

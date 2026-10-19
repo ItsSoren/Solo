@@ -33,6 +33,25 @@
       .map(task => ({ task, day: key, status: status(task, key), at: timestamp(task, key) }))
       .sort((a, b) => (a.task.kind !== "appointment") - (b.task.kind !== "appointment") || a.at - b.at || b.task.importance - a.task.importance);
   }
+  function monthDays(month) {
+    const start=dateOf(`${month}-01`), offset=(start.getDay()+6)%7;
+    const last=new Date(start.getFullYear(),start.getMonth()+1,0).getDate();
+    const first=addDays(`${month}-01`,-offset);
+    return Array.from({length:Math.ceil((offset+last)/7)*7},(_,i)=>addDays(first,i));
+  }
+  function yearSummary(tasks, year, mode = "all") {
+    return Array.from({ length: 12 }, (_, index) => {
+      const month = `${year}-${pad(index + 1)}`, result = { month, total: 0, appointments: 0, missions: 0 };
+      for (let day = `${month}-01`; day.startsWith(month); day = addDays(day, 1)) {
+        for (const entry of forDay(tasks, day, mode)) {
+          if (entry.status === "skipped") continue;
+          result.total++;
+          result[entry.task.kind === "appointment" ? "appointments" : "missions"]++;
+        }
+      }
+      return result;
+    });
+  }
   const canSkip = task => task.kind !== "appointment" && (Number(task.importance) === 1 || (task.effort === "quick" && Number(task.importance) < 3));
   function mark(task, key, next, now = Date.now()) {
     if (!occurs(task, key) || !["open", "done", "skipped"].includes(next) || (next === "skipped" && !canSkip(task))) return false;
@@ -87,6 +106,6 @@
     lines.push("END:VCALENDAR");
     return lines.map(fold).join("\r\n") + "\r\n";
   }
-  root.SoloPlannerCore = { dayKey, validDay, validTime, dateOf, addDays, daysBetween, anchor, occurs, status, timestamp, forDay, canSkip, mark, reminderAt, upcomingReminders, calendarICS };
+  root.SoloPlannerCore = { dayKey, validDay, validTime, dateOf, addDays, daysBetween, anchor, occurs, status, timestamp, forDay, monthDays, yearSummary, canSkip, mark, reminderAt, upcomingReminders, calendarICS };
   if (typeof module !== "undefined") module.exports = root.SoloPlannerCore;
 })(typeof window !== "undefined" ? window : globalThis);
