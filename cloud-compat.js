@@ -519,7 +519,7 @@ async function joinWorkspace(event) {
   catch (error) {
     console.error(error);
     trace("ERREUR invitation", { code: error?.code || error?.message || "unknown" });
-    if (error?.message === "invite-invalid") flash("Ce lien est invalide, expiré ou déjà utilisé.", "error");
+    if (error?.message === "invite-invalid") flash("Ce lien est invalide ou expiré.", "error");
     else friendlyError(error);
   }
 }
