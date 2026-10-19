@@ -81,7 +81,7 @@ function flash(message, type = "") {
 
 function randomCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  const bytes = crypto.getRandomValues(new Uint8Array(20));
   return [...bytes].map((byte) => alphabet[byte % alphabet.length]).join("");
 }
 
@@ -393,8 +393,8 @@ const spaceItem = space => `<button type="button" class="space-item ${cloud.acti
 
 function panelView() {
   if (cloud.panel === "create") return modal("Nouvel espace", `<form id="createSpaceForm" class="nova-form"><label>Nom de l’espace<input required name="title" maxlength="60" placeholder="Ex. Projet de groupe"></label><label>Description <span class="optional">facultatif</span><textarea name="description" maxlength="240" placeholder="À quoi sert cet espace ?"></textarea></label><label>Couleur <select name="color"><option value="violet">Sōlo violet</option><option value="mint">Mint</option><option value="ember">Ember</option><option value="sky">Sky</option></select></label><button class="nova-primary" type="submit">Créer l’espace <span>→</span></button></form>`);
-  if (cloud.panel === "join") return modal("Rejoindre un espace", `<form id="joinSpaceForm" class="nova-form"><p class="modal-intro">Colle le code unique reçu. Il comporte 8 caractères et expire après 7 jours.</p><label>Code d’invitation<input required name="code" value="${esc(cloud.pendingInvite)}" maxlength="12" autocapitalize="characters" placeholder="ABCD2345"></label><button class="nova-primary" type="submit">Rejoindre <span>→</span></button></form>`);
-  if (cloud.panel === "invite") return modal("Inviter des personnes", `<form id="inviteForm" class="nova-form"><p class="modal-intro">Crée un code unique de 8 caractères et envoie-le à la personne à inviter. Il expire après 7 jours.</p><label>Rôle à l’arrivée<select name="role"><option value="member">Membre — peut contribuer</option><option value="viewer">Spectateur — lecture seule</option></select></label><button class="nova-primary" type="submit">Créer un code d’invitation <span>→</span></button></form>`);
+  if (cloud.panel === "join") return modal("Rejoindre un espace", `<form id="joinSpaceForm" class="nova-form"><p class="modal-intro">Colle le code unique reçu. Il comporte 20 caractères et expire après 7 jours.</p><label>Code d’invitation<input required name="code" value="${esc(cloud.pendingInvite)}" maxlength="20" autocapitalize="characters" placeholder="ABCD2345EFGH6789JKLM"></label><button class="nova-primary" type="submit">Rejoindre <span>→</span></button></form>`);
+  if (cloud.panel === "invite") return modal("Inviter des personnes", `<form id="inviteForm" class="nova-form"><p class="modal-intro">Crée un code aléatoire de 20 caractères et envoie-le à la personne à inviter. Il expire après 7 jours.</p><label>Rôle à l’arrivée<select name="role"><option value="member">Membre — peut contribuer</option><option value="viewer">Spectateur — lecture seule</option></select></label><button class="nova-primary" type="submit">Créer un code d’invitation <span>→</span></button></form>`);
   if (cloud.panel === "spaces") return modal("Changer d’espace", `<div class="mobile-space-list">${cloud.workspaces.map(spaceItem).join("")}</div><div class="mobile-space-actions"><button type="button" class="nova-primary" data-cloud-action="open-create"><i class="bi bi-plus-lg"></i> Nouvel espace</button><button type="button" class="nova-secondary" data-cloud-action="open-join"><i class="bi bi-link-45deg"></i> Rejoindre avec un code</button></div>`);
   if (cloud.panel === "task") {
     const task = cloud.editingTask || {};
@@ -527,8 +527,8 @@ async function joinWorkspace(event) {
 async function createInvite(event) {
   event.preventDefault(); const role = new FormData(event.currentTarget).get("role");
   try {
-    // 32^8 combinaisons possibles : le code aléatoire est pratiquement unique
-    // sans lecture Firebase supplémentaire ni quota consommé à chaque invitation.
+    // 32^20 combinaisons possibles : le code évite d’exposer l’accès à un espace
+    // tout en gardant une simple lecture Firestore lors de l’acceptation.
     const code = randomCode();
     await setDoc(doc(db, "invites", code), { workspaceId: cloud.active.id, workspaceTitle: cloud.active.title || "Espace partagé", workspaceColor: cloud.active.color || "violet", role, createdBy: cloud.user.uid, createdAt: serverTimestamp(), expiresAt: Timestamp.fromDate(new Date(Date.now() + 7 * 86400000)) });
     cloud.panel = null; await record("invite", "a créé un code d’invitation"); await copyText(code); flash(`Code ${code} créé et copié dans le presse-papiers.`);

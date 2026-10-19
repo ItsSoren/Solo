@@ -38,7 +38,7 @@ Sur Spark, cela reste confortable pour de petits groupes. Évite surtout de lais
 | Membre | lire, créer, modifier, supprimer | lecture seulement |
 | Spectateur | lecture seulement | lecture seulement |
 
-Les règles Firestore imposent ces permissions côté serveur. Un bouton caché dans le navigateur ne peut donc pas donner de droits supplémentaires. Les liens sont des codes aléatoires de 12 caractères, consultables uniquement par une personne connectée, non listables et valables sept jours.
+Les règles Firestore imposent ces permissions côté serveur. Un bouton caché dans le navigateur ne peut donc pas donner de droits supplémentaires. Les invitations utilisent un code aléatoire de 20 caractères, consultable uniquement par une personne connectée, non listable et valable sept jours. Les codes de 8 caractères créés par les versions précédentes restent acceptés jusqu’à leur expiration.
 
 ## Avant la publication
 
