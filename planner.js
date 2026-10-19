@@ -185,7 +185,6 @@
       activeSection = section; document.body.dataset.lifeMode = mode();
       if (section === "home" || section === "calendar") { (section === "home" ? home : calendar)(document.getElementById(`${section}Section`)); return true; }
       if (section === "notes") setTimeout(decorateNotes, 0);
-      if (section === "profile") setTimeout(() => { const help = document.querySelector('[data-setting-panel="help"]'); if (help && !help.querySelector("[data-solo-reminders]")) { const b = document.createElement("button"); b.className = "secondary full"; b.dataset.soloReminders = ""; b.textContent = "Rappels, iPhone & confidentialité"; b.onclick = reminderSettings; help.append(b); } }, 0);
       return false;
     }
   };
