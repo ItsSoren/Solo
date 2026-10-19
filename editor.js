@@ -169,7 +169,20 @@
   function plainText(content = "") {
     const holder = document.createElement("div");
     holder.innerHTML = /<[^>]+>/.test(content) ? sanitize(content) : window.NovaEditor.render(content);
-    return (holder.textContent || "").replace(/\s+/g, " ").trim();
+    const lines = [];
+    const visit = node => {
+      if (node.nodeType === 3) { lines.push(node.nodeValue || ""); return; }
+      if (node.nodeType !== 1) return;
+      if (node.tagName === "BR") { lines.push("\n"); return; }
+      if (node.tagName === "INPUT" && node.type === "checkbox") { lines.push(node.checked || node.hasAttribute("checked") ? "[x] " : "[ ] "); return; }
+      const block = /^(P|DIV|H1|H2|H3|UL|OL|LI|BLOCKQUOTE|PRE|HR)$/.test(node.tagName);
+      if (block && lines.length && !String(lines.at(-1)).endsWith("\n")) lines.push("\n");
+      if (node.tagName === "LI") lines.push("• ");
+      [...node.childNodes].forEach(visit);
+      if (block) lines.push("\n");
+    };
+    [...holder.childNodes].forEach(visit);
+    return lines.join("").replace(/[ \t]*\n[ \t]*/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
   }
 
   function checklistStats(content = "", format = "markdown") {
@@ -298,9 +311,10 @@
     let recovered = null;
     try { recovered = JSON.parse(localStorage.getItem(draftKey) || "null"); } catch { recovered = null; }
     const title = recovered?.title ?? options.title ?? "";
-    const html = recovered?.html ?? fromStored(options.content || "", options.format || "markdown");
-    const color = recovered?.color || options.color || "opal";
-    root.innerHTML = `<header class="note-workspace-bar"><button type="button" class="note-back"><i class="bi bi-arrow-left"></i><span>Retour</span></button><div class="note-workspace-place"><span>${window.NovaEditor.escapeHtml(options.label || "Note")}</span><i class="bi bi-chevron-right"></i><strong id="workspaceCrumb">${window.NovaEditor.escapeHtml(title || "Sans titre")}</strong></div><div class="note-save-state" id="noteSaveState"><i class="bi bi-shield-check"></i><span>${recovered ? "Brouillon récupéré" : options.autoSave ? "Sauvegarde automatique active" : "Brouillon local actif · Enregistrer pour partager"}</span></div><button type="button" class="primary" id="workspaceSave"><i class="bi bi-check2"></i> Enregistrer</button></header>
+    const html = sanitize(recovered?.html ?? fromStored(options.content || "", options.format || "markdown"));
+    const colorValue = recovered?.color || options.color || "opal";
+    const color = ["opal", "blue", "violet", "sand"].includes(colorValue) ? colorValue : "opal";
+    root.innerHTML = `<header class="note-workspace-bar"><button type="button" class="note-back"><i class="bi bi-arrow-left"></i><span>Retour</span></button><div class="note-workspace-place"><span>${window.NovaEditor.escapeHtml(options.label || "Note")}</span><i class="bi bi-chevron-right"></i><strong id="workspaceCrumb">${window.NovaEditor.escapeHtml(title || "Sans titre")}</strong></div><div class="note-save-state" id="noteSaveState"><i class="bi bi-shield-check"></i><span>${recovered ? "Brouillon récupéré sur cet appareil" : options.draftOnly ? "Brouillon local actif · une écriture cloud au clic" : options.autoSave ? "Sauvegarde automatique active" : "Brouillon local actif · Enregistrer pour partager"}</span></div><button type="button" class="primary" id="workspaceSave"><i class="bi bi-check2"></i> Enregistrer</button></header>
       <div class="note-format-bar-wrap"><div class="rich-toolbar" role="toolbar" aria-label="Mise en forme"><button type="button" data-rich-command="undo" aria-label="Annuler" title="Annuler"><i class="bi bi-arrow-counterclockwise"></i></button><button type="button" data-rich-command="redo" aria-label="Rétablir" title="Rétablir"><i class="bi bi-arrow-clockwise"></i></button><span></span><button type="button" data-rich-command="formatBlock" data-value="P" aria-label="Texte normal" title="Texte normal"><i class="bi bi-type"></i></button><button type="button" data-rich-command="formatBlock" data-value="H1" aria-label="Titre 1" title="Titre 1"><i class="bi bi-type-h1"></i></button><button type="button" data-rich-command="formatBlock" data-value="H2" aria-label="Titre 2" title="Titre 2"><i class="bi bi-type-h2"></i></button><button type="button" data-rich-command="formatBlock" data-value="H3" aria-label="Titre 3" title="Titre 3"><i class="bi bi-type-h3"></i></button><span></span><button type="button" data-rich-command="bold" aria-label="Gras" title="Gras"><i class="bi bi-type-bold"></i></button><button type="button" data-rich-command="italic" aria-label="Italique" title="Italique"><i class="bi bi-type-italic"></i></button><button type="button" data-rich-command="underline" aria-label="Souligné" title="Souligné"><i class="bi bi-type-underline"></i></button><button type="button" data-rich-command="strikeThrough" aria-label="Barré" title="Barré"><i class="bi bi-type-strikethrough"></i></button><button type="button" data-rich-action="code" aria-label="Code en ligne" title="Code en ligne"><i class="bi bi-code"></i></button><button type="button" data-rich-command="removeFormat" aria-label="Effacer la mise en forme" title="Effacer la mise en forme"><i class="bi bi-eraser"></i></button><span></span><button type="button" data-rich-command="insertUnorderedList" aria-label="Liste à puces" title="Liste à puces"><i class="bi bi-list-ul"></i></button><button type="button" data-rich-command="insertOrderedList" aria-label="Liste numérotée" title="Liste numérotée"><i class="bi bi-list-ol"></i></button><button type="button" data-rich-action="check" aria-label="Liste à cocher" title="Liste à cocher"><i class="bi bi-list-check"></i></button><button type="button" data-rich-command="outdent" aria-label="Diminuer le retrait" title="Diminuer le retrait"><i class="bi bi-text-indent-left"></i></button><button type="button" data-rich-command="indent" aria-label="Augmenter le retrait" title="Augmenter le retrait"><i class="bi bi-text-indent-right"></i></button><span></span><button type="button" data-rich-command="formatBlock" data-value="BLOCKQUOTE" aria-label="Citation" title="Citation"><i class="bi bi-quote"></i></button><button type="button" data-rich-command="formatBlock" data-value="PRE" aria-label="Bloc de code" title="Bloc de code"><i class="bi bi-code-square"></i></button><button type="button" data-rich-action="link" aria-label="Ajouter un lien" title="Ajouter un lien"><i class="bi bi-link-45deg"></i></button><button type="button" data-rich-command="insertHorizontalRule" aria-label="Séparateur" title="Séparateur"><i class="bi bi-dash-lg"></i></button></div></div>
       <main class="note-document-shell"><article class="note-document ${color}" id="noteDocument"><div class="note-document-meta"><span><i class="bi ${options.shared ? "bi-people" : "bi-lock"}"></i> ${options.shared ? "Note partagée" : "Note personnelle"}</span><div class="note-colors">${["opal","blue","violet","sand"].map(name => `<button type="button" class="${name} ${name === color ? "active" : ""}" data-rich-color="${name}" aria-label="Couleur ${name}"><i></i></button>`).join("")}</div></div><input id="richNoteTitle" class="note-document-title" maxlength="100" value="${window.NovaEditor.escapeHtml(title)}" placeholder="Titre de la note"><div id="richNoteBody" class="rich-note-body" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Écris quelque chose, ou ajoute une checklist…">${html}</div></article></main>`;
     root.classList.remove("hidden");
@@ -308,6 +322,8 @@
     const titleInput = root.querySelector("#richNoteTitle");
     const body = root.querySelector("#richNoteBody");
     const documentCard = root.querySelector("#noteDocument");
+    let activeFont = ["sans", "serif", "mono", "rounded"].includes(recovered?.font || options.font) ? (recovered?.font || options.font) : "sans";
+    documentCard.dataset.font = activeFont;
     const stateText = root.querySelector("#noteSaveState span");
     let activeColor = color;
     let saveTimer = null;
@@ -324,19 +340,48 @@
     };
 
     const storeDraft = () => {
-      const payload = { title: titleInput.value, html: sanitize(body.innerHTML), color: activeColor, updatedAt: Date.now() };
+      const payload = { title: titleInput.value, html: sanitize(body.innerHTML), color: activeColor, font: activeFont, updatedAt: Date.now() };
       try { localStorage.setItem(draftKey, JSON.stringify(payload)); stateText.textContent = "Brouillon sauvegardé sur cet appareil"; } catch { stateText.textContent = "Brouillon trop volumineux"; }
     };
-    const valueForSave = () => ({ title: titleInput.value.trim(), content: sanitize(body.innerHTML), format: "html", color: activeColor });
+    const valueForSave = () => ({ title: titleInput.value.trim(), content: sanitize(body.innerHTML), format: "html", color: activeColor, font: activeFont });
     const saveAutomatically = async () => {
       if (!options.autoSave || autoSaving || !titleInput.value.trim()) return;
       autoSaving = true;
       stateText.textContent = "Enregistrement automatique…";
+      if (options.draftOnly) {
+        storeDraft();
+        stateText.textContent = "Brouillon sur cet appareil · non synchronisé";
+        autoPersisted = true;
+        autoSaving = false;
+        return;
+      }
       try { await options.onSave({ ...valueForSave(), auto: true }); localStorage.removeItem(draftKey); autoPersisted = true; stateText.textContent = "Enregistrée automatiquement"; }
       catch { stateText.textContent = "Brouillon conservé sur cet appareil"; }
       finally { autoSaving = false; }
     };
     const changed = () => { autoPersisted = false; stateText.textContent = options.autoSave ? "Modification non enregistrée…" : "Sauvegarde du brouillon…"; clearTimeout(saveTimer); saveTimer = setTimeout(storeDraft, 280); clearTimeout(autoSaveTimer); if (options.autoSave) autoSaveTimer = setTimeout(saveAutomatically, 1400); root.querySelector("#workspaceCrumb").textContent = titleInput.value || "Sans titre"; };
+    const exportTools = document.createElement("div"); exportTools.className = "note-export-tools";
+    exportTools.innerHTML = `<select aria-label="Police de la note">${Object.entries({ sans: "Claire", serif: "Littéraire", mono: "Machine à écrire", rounded: "Douce" }).map(([key,label]) => `<option value="${key}" ${activeFont === key ? "selected" : ""}>${label}</option>`).join("")}</select><button type="button" data-export-note="print">PDF / Imprimer</button><button type="button" data-export-note="html">Document</button><button type="button" data-export-note="text">Texte</button>`;
+    root.querySelector(".rich-toolbar").append(exportTools);
+    const templateSelect = document.createElement("select");
+    templateSelect.className = "note-template-select";
+    templateSelect.setAttribute("aria-label", "Insérer un modèle de note");
+    templateSelect.innerHTML = '<option value="">Insérer un modèle…</option><option value="films">Films à voir ensemble</option><option value="tasting">Liste et classement de dégustation</option><option value="poem">Poème ou texte libre</option>';
+    exportTools.prepend(templateSelect);
+    templateSelect.onchange = () => {
+      const template = window.SoloPlanner?.templateFor(templateSelect.value);
+      if (!template) return;
+      if ((titleInput.value.trim() || body.textContent.trim()) && !window.confirm("Remplacer le texte actuel de cette note par ce modèle ?")) { templateSelect.value = ""; return; }
+      titleInput.value = template.title; body.innerHTML = sanitize(template.content); activeFont = template.font || activeFont; documentCard.dataset.font = activeFont; changed(); templateSelect.value = "";
+    };
+    exportTools.querySelector("select").onchange = event => { activeFont = event.target.value; documentCard.dataset.font = activeFont; changed(); };
+    exportTools.querySelectorAll("[data-export-note]").forEach(button => button.onclick = () => {
+      const title = titleInput.value.trim() || "Note Sōlo", name = title.replace(/[^a-z0-9à-ÿ _-]/gi, "").slice(0,80) || "note-solo";
+      if (button.dataset.exportNote === "print") { document.body.classList.add("solo-print-note"); window.print(); return; }
+      const clean = sanitize(body.innerHTML), safeTitle = window.NovaEditor.escapeHtml(title), font = { sans: "system-ui,sans-serif", serif: "Georgia,serif", mono: "monospace", rounded: "ui-rounded,system-ui,sans-serif" }[activeFont];
+      const htmlDocument = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${safeTitle}</title><style>body{max-width:720px;margin:50px auto;padding:0 24px;font:18px/1.75 ${font};color:#183038}h1{line-height:1.2}blockquote{border-left:3px solid #62b8ae;padding-left:20px}a{color:#087d78}pre{white-space:pre-wrap}input{margin-right:10px}@media print{body{margin:0}}</style></head><body><h1>${safeTitle}</h1>${clean}</body></html>`;
+      window.SoloPlanner?.download(button.dataset.exportNote === "text" ? `${title}\n\n${plainText(clean)}` : htmlDocument, `${name}.${button.dataset.exportNote === "text" ? "txt" : "html"}`, button.dataset.exportNote === "text" ? "text/plain;charset=utf-8" : "text/html;charset=utf-8");
+    });
     const restoreRememberedRange = () => { if (!rememberedRange) return; const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(rememberedRange.cloneRange()); };
     const addColorPicker = (action, icon, title, value) => {
       const label = document.createElement("label");
@@ -369,7 +414,8 @@
       const current = window.getSelection()?.anchorNode;
       root.querySelector("[data-rich-action='check']")?.classList.toggle("is-active", !!current?.parentElement?.closest(".editor-check-block"));
     };
-    document.addEventListener("selectionchange", () => { rememberSelection(); refreshToolbarState(); });
+    const selectionChanged = () => { rememberSelection(); refreshToolbarState(); };
+    document.addEventListener("selectionchange", selectionChanged);
     refreshToolbarState();
     root.querySelector("[data-rich-action='code']").onmousedown = event => event.preventDefault();
     root.querySelector("[data-rich-action='code']").onclick = () => { toggleInlineCode(body, rememberedRange); rememberedRange = null; changed(); };
@@ -378,7 +424,7 @@
     root.querySelector("[data-rich-action='link']").onmousedown = event => event.preventDefault();
     root.querySelector("[data-rich-action='link']").onclick = () => { const url = prompt("Adresse du lien (https://…)"); if (/^https?:\/\//i.test(url || "")) { body.focus(); document.execCommand("createLink", false, url); changed(); } };
 
-    const close = () => { clearTimeout(saveTimer); clearTimeout(autoSaveTimer); if (!autoPersisted) storeDraft(); root.classList.add("hidden"); document.body.classList.remove("note-workspace-open"); options.onClose?.(); };
+    const close = () => { document.removeEventListener("selectionchange", selectionChanged); clearTimeout(saveTimer); clearTimeout(autoSaveTimer); if (!autoPersisted) storeDraft(); root.classList.add("hidden"); document.body.classList.remove("note-workspace-open"); options.onClose?.(); };
     root.querySelector(".note-back").onclick = close;
     root.querySelector("#workspaceSave").onclick = async () => {
       const cleanTitle = titleInput.value.trim();
@@ -389,9 +435,11 @@
         clearTimeout(autoSaveTimer);
         await options.onSave({ ...valueForSave(), title: cleanTitle, auto: false });
         localStorage.removeItem(draftKey); stateText.textContent = "Note enregistrée";
+        document.removeEventListener("selectionchange", selectionChanged);
         root.classList.add("hidden"); document.body.classList.remove("note-workspace-open");
       } catch (error) {
-        console.error("Sōlo note save", error); stateText.textContent = "Impossible d’enregistrer — le brouillon reste ici"; button.disabled = false;
+        storeDraft();
+        console.error("Sōlo note save", error); stateText.textContent = error.code === "solo/note-conflict" ? "Modifiée ailleurs — exporte ton brouillon avant de rouvrir la note" : "Impossible d’enregistrer — le brouillon reste ici"; button.disabled = false;
       }
     };
     root.onkeydown = event => {
@@ -411,3 +459,4 @@
   window.NovaRichEditor = { sanitize, fromStored, plainText, checklistStats };
   window.NovaNoteWorkspace = { open };
 })();
+window.addEventListener("afterprint", () => document.body.classList.remove("solo-print-note"));

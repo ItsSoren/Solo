@@ -15,6 +15,8 @@
   const normalizeTheme = value => THEMES.some(theme => theme.id === value) ? value : "opal-light";
   const esc = value => window.NovaEditor.escapeHtml(value == null ? "" : String(value));
   const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  const safeId = value => typeof value === "string" && /^[a-z0-9_-]{1,128}$/i.test(value) ? value : uid();
+  let lastStoredValue = null;
 
   function freshState() {
     return {
@@ -44,7 +46,7 @@
     const deadlineTs = Number(task.deadlineTs || (task.deadline ? new Date(task.deadline).getTime() : 0));
     return {
       ...task,
-      id: task.id || uid(),
+      id: safeId(task.id),
       title: task.title || "Objectif sans titre",
       description: task.description || "",
       importance: [1, 2, 3].includes(Number(task.importance)) ? Number(task.importance) : 1,
@@ -59,7 +61,7 @@
   function normalizeNote(note = {}) {
     return {
       ...note,
-      id: note.id || uid(),
+      id: safeId(note.id),
       title: note.title || "Note sans titre",
       content: note.content || "",
       color: ["opal", "blue", "violet", "sand"].includes(note.color) ? note.color : "opal",
@@ -72,7 +74,19 @@
   function loadState() {
     const empty = freshState();
     try {
-      const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null") || empty;
+      const raw = localStorage.getItem(STORAGE_KEY);
+      lastStoredValue = raw;
+      let parsed;
+      try {
+        parsed = JSON.parse(raw || "null") || empty;
+        if (!Array.isArray(parsed.tasks || []) || !Array.isArray(parsed.notes || [])) throw new Error("Invalid collections");
+      } catch (error) {
+        // Preserve the exact unreadable copy for recovery before trying a backup.
+        if (raw) { try { localStorage.setItem(`${STORAGE_KEY}_unreadable`, raw); } catch {} }
+        const previous = localStorage.getItem(`${STORAGE_KEY}_previous`);
+        parsed = previous ? JSON.parse(previous) : empty;
+        window.__soloRecoveryNotice = true;
+      }
       return {
         ...empty,
         ...parsed,
@@ -90,11 +104,25 @@
 
   const state = loadState();
   const ui = { section: "home", taskFilter: "open", taskSearch: "", noteSearch: "", settingsTab: "profile", account: { status: "loading", syncPending: false } };
-  const sections = ["home", "tasks", "notes", "shared", "stats", "profile"];
+  const sections = ["home", "calendar", "tasks", "notes", "shared", "stats", "profile"];
 
   function save({ notify = true, touch = true } = {}) {
     if (touch) state.syncUpdatedAt = Date.now();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    try {
+      const previous = localStorage.getItem(STORAGE_KEY);
+      if (previous !== lastStoredValue) {
+        window.dispatchEvent(new CustomEvent("solo:storage-conflict"));
+        throw new Error("Sōlo changed in another tab");
+      }
+      // Keep the previous valid snapshot before replacing it. A backup failure
+      // must not prevent the primary save on a device with little storage left.
+      if (previous) { try { JSON.parse(previous); localStorage.setItem(`${STORAGE_KEY}_previous`, previous); } catch {} }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      lastStoredValue = localStorage.getItem(STORAGE_KEY);
+    } catch (error) {
+      window.dispatchEvent(new CustomEvent("solo:save-error"));
+      throw error;
+    }
     if (notify) window.dispatchEvent(new CustomEvent("nova:local-change"));
   }
 
@@ -370,6 +398,7 @@
   }
 
   function renderSection() {
+    if (window.SoloPlanner?.renderSection(ui.section)) return;
     if (ui.section === "home") renderHome();
     if (ui.section === "tasks") renderTasks();
     if (ui.section === "notes") renderNotes();
@@ -378,7 +407,16 @@
   }
 
   function bindTaskActions(root) {
-    root.querySelectorAll("[data-toggle-task]").forEach(button => button.onclick = event => { event.stopPropagation(); const task = state.tasks.find(item => item.id === button.dataset.toggleTask); if (!task) return; task.state = task.state === "completed" ? "inprogress" : "completed"; task.completedAt = task.state === "completed" ? Date.now() : null; save(); renderSection(); toast(task.state === "completed" ? "Objectif terminé" : "Objectif rouvert"); });
+    root.querySelectorAll("[data-toggle-task]").forEach(button => button.onclick = event => {
+      event.stopPropagation(); const task = state.tasks.find(item => item.id === button.dataset.toggleTask); if (!task) return;
+      if (task.repeat && task.repeat !== "none") { navigate("home"); toast("Coche chaque occurrence de cette routine dans Aujourd’hui ou le Calendrier."); return; }
+      if (window.SoloPlannerCore && window.SoloPlannerCore.anchor(task)) {
+        const core = window.SoloPlannerCore, day = core.anchor(task);
+        if (day > core.dayKey(Date.now()) && task.state !== "completed") return toast("Cet engagement est prévu plus tard. Tu pourras le cocher le jour venu.");
+        core.mark(task, day, task.state === "completed" ? "open" : "done");
+      } else { task.state = task.state === "completed" ? "inprogress" : "completed"; task.completedAt = task.state === "completed" ? Date.now() : null; task.updatedAt = Date.now(); }
+      save(); renderSection(); toast(task.state === "completed" ? "Objectif terminé" : "Objectif rouvert");
+    });
     root.querySelectorAll("[data-edit-task]").forEach(button => button.onclick = event => { event.stopPropagation(); openTaskDialog(button.dataset.editTask); });
     root.querySelectorAll("[data-delete-task]").forEach(button => button.onclick = async event => { event.stopPropagation(); const task = state.tasks.find(item => item.id === button.dataset.deleteTask); if (!task) return; if (await confirmAction("Supprimer cet objectif ?", `« ${task.title} » sera retiré de cet appareil.`)) { state.tasks = state.tasks.filter(item => item.id !== task.id); save(); renderSection(); toast("Objectif supprimé"); } });
   }
@@ -390,6 +428,7 @@
   }
 
   function openTaskDialog(taskId = null) {
+    if (window.SoloPlanner) return window.SoloPlanner.openItem(taskId);
     const existing = taskId ? state.tasks.find(task => task.id === taskId) : null;
     const draft = existing ? structuredClone(existing) : { ...normalizeTask({ id: uid(), deadlineTs: Date.now() + 7 * DAY, importance: 2, steps: [] }), title: "" };
     const dialog = document.getElementById("taskDialog");
@@ -441,6 +480,8 @@
       content: draft.content,
       format: draft.format || "markdown",
       color: draft.color,
+      font: draft.font || "sans",
+      draftOnly: true,
       autoSave: true,
       onSave: async value => {
         const body = { ...draft, ...value, updatedAt: Date.now() };
@@ -466,7 +507,7 @@
   function openCommandPalette() {
     const dialog = document.getElementById("commandDialog");
     const features = [
-      ["home", "Aujourd’hui", "Voir le tableau de bord", "bi-house"], ["tasks", "Mes objectifs", "Ouvrir la liste des objectifs", "bi-check2-square"], ["notes", "Mes notes", "Retrouver les notes personnelles", "bi-journal-text"], ["shared", "Espaces partagés", "Tâches, notes et membres", "bi-people"], ["stats", "Statistiques", "Voir les progrès", "bi-bar-chart"], ["profile", "Réglages", "Thème, profil et sauvegardes", "bi-sliders"], ["create-task", "Créer un objectif", "Ajouter rapidement une tâche", "bi-plus-square"], ["create-note", "Créer une note", "Ouvrir le mini éditeur", "bi-journal-plus"]
+      ["home", "Aujourd’hui", "Voir le tableau de bord", "bi-house"], ["calendar", "Calendrier", "Rendez-vous et missions récurrentes", "bi-calendar3"], ["tasks", "Mes objectifs", "Ouvrir la liste des objectifs", "bi-check2-square"], ["notes", "Mes notes", "Retrouver les notes personnelles", "bi-journal-text"], ["shared", "Espaces partagés", "Tâches, notes et membres", "bi-people"], ["stats", "Statistiques", "Voir les progrès", "bi-bar-chart"], ["profile", "Réglages", "Thème, profil et sauvegardes", "bi-sliders"], ["create-task", "Créer un objectif", "Ajouter rapidement une tâche", "bi-plus-square"], ["create-note", "Créer une note", "Ouvrir le mini éditeur", "bi-journal-plus"]
     ];
     dialog.innerHTML = `<div class="command-content"><label class="command-input"><i class="bi bi-search"></i><input id="commandInput" autocomplete="off" placeholder="Rechercher une fonction, un objectif ou une note…"><kbd>Esc</kbd></label><div id="commandResults" class="command-results"></div><footer><span><kbd>↑</kbd><kbd>↓</kbd> naviguer</span><span><kbd>Entrée</kbd> ouvrir</span></footer></div>`;
     const input = dialog.querySelector("#commandInput");
@@ -546,8 +587,9 @@
       if (!field && event.key.toLowerCase() === "n") { event.preventDefault(); openTaskDialog(); }
     });
     document.querySelectorAll("dialog").forEach(dialog => dialog.addEventListener("click", event => { if (event.target === dialog) dialog.close(); }));
-    window.NovaApp = { navigate, openTask: openTaskDialog, openNote: openNoteDialog, openSearch: openCommandPalette, state, toast, getPersonalSnapshot, applyPersonalSnapshot };
-    save({ notify: false, touch: false }); navigate("home");
+    window.NovaApp = { navigate, openTask: openTaskDialog, openNote: openNoteDialog, openTags: openTagManager, openSearch: openCommandPalette, state, toast, save, refresh: renderSection, getPersonalSnapshot, applyPersonalSnapshot };
+    // Never replace an unreadable stored snapshot with an empty state at startup.
+    navigate("home");
     updateAccountIndicator();
   }
 

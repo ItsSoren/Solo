@@ -25,7 +25,7 @@ const writeBatch = () => db.batch();
 const orderBy = (field, direction = "asc") => ({ type: "orderBy", field, direction });
 const limit = count => ({ type: "limit", count });
 const query = (ref, ...constraints) => constraints.reduce((current, item) => item.type === "orderBy" ? current.orderBy(item.field, item.direction) : current.limit(item.count), ref);
-const onSnapshot = (ref, callback) => ref.onSnapshot(callback);
+const onSnapshot = (ref, callback, onError) => ref.onSnapshot(callback, onError);
 const onAuthStateChanged = (_, callback) => auth.onAuthStateChanged(callback);
 const createUserWithEmailAndPassword = (_, email, password) => auth.createUserWithEmailAndPassword(email, password);
 const signInWithEmailAndPassword = (_, email, password) => auth.signInWithEmailAndPassword(email, password);
@@ -121,6 +121,12 @@ function subscribeWorkspace() {
 }
 
 function friendlyError(error) {
+  if (error.code === "solo/sync-conflict") {
+    cloud.syncReady = false;
+    window.dispatchEvent(new CustomEvent("nova:sync-pending", { detail: { message: "Un autre appareil a modifié tes données. Choisis comment les rapprocher depuis les réglages." } }));
+    window.NovaApp?.toast("Synchronisation suspendue : un autre appareil a modifié tes données. Ouvre Profil & réglages pour les rapprocher.");
+    return;
+  }
   console.error("Sōlo shared", error);
   trace("ERREUR Firebase", { code: error?.code || "unknown" });
   const permission = error.code === "permission-denied" || error.code === "firestore/permission-denied";
@@ -173,16 +179,30 @@ function askSyncChoice(local, remote) {
   });
 }
 
-async function writePersonalState({ force = false } = {}) {
+let personalRevision = 0;
+let personalRevisionUser = "";
+function writePersonalState(options = {}) {
+  const pending = (writePersonalState.inflight || Promise.resolve()).catch(() => {}).then(() => persistPersonalState(options));
+  writePersonalState.inflight = pending;
+  return pending;
+}
+async function persistPersonalState({ force = false } = {}) {
   if (!cloud.user || (!cloud.syncReady && !force)) return;
   const nova = await waitForNovaApp();
   const personalState = nova?.getPersonalSnapshot?.();
   if (!personalState) return;
-  if (JSON.stringify(personalState).length > 850000) {
+  if (new TextEncoder().encode(JSON.stringify(personalState)).length > 850000) {
     nova.toast?.("Sauvegarde cloud trop volumineuse. Exporte tes données pour conserver une copie.");
     return;
   }
-  await setDoc(doc(db, "users", cloud.user.uid), { personalState, personalStateUpdatedAt: serverTimestamp() }, { merge: true });
+  const userId = cloud.user.uid, revision = personalRevision;
+  if (personalRevisionUser !== userId) return;
+  await db.runTransaction(async transaction => {
+    const ref = doc(db, "users", userId), current = await transaction.get(ref);
+    if ((Number(current.data()?.personalRevision) || 0) !== revision) throw Object.assign(new Error("Remote state changed"), { code: "solo/sync-conflict" });
+    transaction.set(ref, { personalState, personalRevision: revision + 1, personalStateUpdatedAt: serverTimestamp() }, { merge: true });
+  });
+  personalRevision = revision + 1;
 }
 
 async function syncPersonalOnLogin() {
@@ -191,6 +211,8 @@ async function syncPersonalOnLogin() {
   cloud.syncReady = false;
   const userRef = doc(db, "users", cloud.user.uid);
   const userSnapshot = await getDoc(userRef);
+  personalRevision = Number(userSnapshot.data()?.personalRevision) || 0;
+  personalRevisionUser = cloud.user.uid;
   const local = nova.getPersonalSnapshot();
   const remote = userSnapshot.exists() ? userSnapshot.data().personalState : null;
   if (remote && hasPersonalData(local) && hasPersonalData(remote)) {
@@ -538,6 +560,8 @@ async function saveNote(event) {
 
 function openSharedNote(note = null) {
   if (!cloud.active || !canEdit()) return;
+  const workspaceId = cloud.active.id;
+  const originalVersion = note?.updatedAt?.toMillis?.() || 0;
   window.NovaNoteWorkspace.open({
     id: note?.id || "new",
     scope: `shared_${cloud.active.id}`,
@@ -547,15 +571,23 @@ function openSharedNote(note = null) {
     content: note?.content || "",
     format: note?.format || "markdown",
     color: note?.color || "opal",
+    font: note?.font || "sans",
     onSave: async value => {
       const body = { ...value, linkUrl: note?.linkUrl || "", updatedAt: serverTimestamp(), updatedBy: cloud.user.uid, updatedByName: cloud.user.displayName || "Membre Sōlo" };
       try {
-        if (note?.id) await updateDoc(doc(db, "workspaces", cloud.active.id, "notes", note.id), body);
-        else await addDoc(activeRef("notes"), { ...body, createdBy: cloud.user.uid, createdByName: cloud.user.displayName || "Membre Sōlo", createdAt: serverTimestamp() });
-        await record("note-saved", `a sauvegardé « ${body.title} »`);
+        if (body.content.length > 12000) throw Object.assign(new Error("Note trop longue"), { code: "solo/note-size" });
+        if (note?.id) await db.runTransaction(async transaction => {
+          const ref = doc(db, "workspaces", workspaceId, "notes", note.id), current = await transaction.get(ref);
+          if (!current.exists || (current.data().updatedAt?.toMillis?.() || 0) !== originalVersion) throw Object.assign(new Error("Note modifiée par un autre membre"), { code: "solo/note-conflict" });
+          transaction.update(ref, body);
+        });
+        else await addDoc(collection(db, "workspaces", workspaceId, "notes"), { ...body, createdBy: cloud.user.uid, createdByName: cloud.user.displayName || "Membre Sōlo", createdAt: serverTimestamp() });
+        await record("note-saved", `a sauvegardé « ${body.title} »`).catch(() => {});
         render();
       } catch (error) {
-        friendlyError(error);
+        if (error.code === "solo/note-conflict") window.NovaApp?.toast("Cette note a changé ailleurs. Ton brouillon est conservé : exporte-le avant de rouvrir la dernière version.");
+        else if (error.code === "solo/note-size") window.NovaApp?.toast("Cette note dépasse la limite partagée de 12 000 caractères. Exporte-la ou raccourcis-la.");
+        else friendlyError(error);
         throw error;
       }
     }

@@ -1,0 +1,12 @@
+{
+  "id": "./",
+  "name": "Sōlo — À ton rythme",
+  "short_name": "Sōlo",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef9fb",
+  "theme_color": "#f1fbfc",
+  "icons": [{ "src": "assets/solo-mark-opal.png", "sizes": "any", "type": "image/png", "purpose": "any" }]
+}
